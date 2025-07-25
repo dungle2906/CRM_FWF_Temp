@@ -48,7 +48,7 @@ public class ServiceRecord {
     private String performingEmployee;
     private BigDecimal employeeSalary;
     private String status;
-    private String rating;
+    private Double rating;
     private String reviewContent;
     private String note;
 }

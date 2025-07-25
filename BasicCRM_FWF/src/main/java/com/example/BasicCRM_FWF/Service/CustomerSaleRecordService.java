@@ -3,10 +3,7 @@ package com.example.BasicCRM_FWF.Service;
 import com.example.BasicCRM_FWF.DTORequest.CustomerReportRequest;
 import com.example.BasicCRM_FWF.DTOResponse.*;
 import com.example.BasicCRM_FWF.Model.*;
-import com.example.BasicCRM_FWF.Repository.AppUsageRecordRepository;
-import com.example.BasicCRM_FWF.Repository.CustomerSaleRecordRepository;
-import com.example.BasicCRM_FWF.Repository.SalesTransactionRepository;
-import com.example.BasicCRM_FWF.Repository.ServiceRecordRepository;
+import com.example.BasicCRM_FWF.Repository.*;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.poi.ss.usermodel.*;
@@ -22,6 +19,7 @@ import java.time.LocalTime;
 import java.time.format.DateTimeFormatter;
 import java.time.temporal.ChronoUnit;
 import java.util.*;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 
 @Service
@@ -33,6 +31,7 @@ public class CustomerSaleRecordService {
     private final SalesTransactionRepository salesTransactionRepository;
     private final AppUsageRecordRepository appUsageRecordRepository;
     private final ServiceRecordRepository serviceRecordRepository;
+    private final RegionRepository regionRepository;
 
     public void importFromExcel(MultipartFile file) {
         int success = 0;
@@ -41,6 +40,14 @@ public class CustomerSaleRecordService {
         try (InputStream is = file.getInputStream()) {
             Workbook workbook = WorkbookFactory.create(is);
             Sheet sheet = workbook.getSheetAt(0);
+
+            // ✅ Tạo map Region: shop_name (chuẩn hoá) → Region
+            Map<String, Region> regionMap = regionRepository.findAll()
+                    .stream()
+                    .collect(Collectors.toMap(
+                            r -> r.getShop_name().trim().toLowerCase(),
+                            Function.identity()
+                    ));
 
             for (int i = 2; i <= sheet.getLastRowNum(); i++) {
                 Row row = sheet.getRow(i);
@@ -53,26 +60,36 @@ public class CustomerSaleRecordService {
                     String createdStr = getString(row.getCell(1));
                     LocalDateTime createdAt = LocalDateTime.parse(createdStr, DateTimeFormatter.ofPattern("HH:mm dd/MM/yyyy"));
 
+                    // ✅ Tra Region bằng shop name (cột CƠ SỞ trong Excel, cột 11 tính từ 0)
+                    String shopName = getString(row.getCell(11)).trim().toLowerCase();
+                    Region facilityRecordService = regionMap.get(shopName);
+
+                    if (facilityRecordService == null) {
+                        log.warn("Row {} skipped: Không tìm thấy Region cho tên '{}'", i, shopName);
+                        failed++;
+                        continue;
+                    }
+
                     CustomerSaleRecord record = CustomerSaleRecord.builder()
                             .createdAt(createdAt)
                             .customerName(getString(row.getCell(2)))
-                            .customerId(Integer.parseInt(getString(row.getCell(3)).substring(1)))
+                            .customerId(parseExcelInteger(getString(row.getCell(3))))
                             .phoneNumber(getString(row.getCell(4)))
-                            .email(getString(row.getCell(5)))
-                            .dob(getString(row.getCell(6)))
+                            .email(getString(row.getCell(5)).contains("Không có Email") ? null : getString(row.getCell(5)))
+                            .dob(getString(row.getCell(6)).contains("Không có") ? null : getString(row.getCell(6)))
                             .gender(getString(row.getCell(7)))
-                            .address(getString(row.getCell(8)))
-                            .district(getString(row.getCell(9)))
-                            .province(getString(row.getCell(10)))
-                            .facility(getString(row.getCell(11)))
+                            .address(getString(row.getCell(8)).contains("Không có") ? null : getString(row.getCell(8)))
+                            .district(getString(row.getCell(9)).contains("Không có") ? null : getString(row.getCell(9)))
+                            .province(getString(row.getCell(10)).contains("Không có") ? null : getString(row.getCell(10)))
+                            .facility(facilityRecordService)
                             .customerType(getString(row.getCell(12)))
                             .source(getString(row.getCell(13)))
-                            .cardCode(getString(row.getCell(14)))
-                            .careStaff(getString(row.getCell(15)))
-                            .wallet(toBigDecimal(row.getCell(16)))
-                            .debt(toBigDecimal(row.getCell(17)))
-                            .prepaidCard(toBigDecimal(row.getCell(18)))
-                            .rewardPoint(toBigDecimal(row.getCell(19)))
+                            .cardCode(getString(row.getCell(14)).contains("Chưa có") ? null : getString(row.getCell(14)))
+                            .careStaff(getString(row.getCell(15)).contains("Chưa có") ? null : getString(row.getCell(15)))
+                            .wallet(toBigDecimal(getString(row.getCell(16)).isBlank() ? null : row.getCell(16)))
+                            .debt(toBigDecimal(getString(row.getCell(17)).isBlank() ? null : row.getCell(17)))
+                            .prepaidCard(toBigDecimal(getString(row.getCell(18)).startsWith("0") ? null : row.getCell(18)))
+                            .rewardPoint(toBigDecimal(getString(row.getCell(19)).startsWith("0") ? null : row.getCell(19)))
                             .build();
 
                     customerSaleRecordRepository.save(record);
@@ -508,4 +525,10 @@ public class CustomerSaleRecordService {
                 .sorted((a, b) -> Long.compare(b.getTotal(), a.getTotal())) // sort descending
                 .collect(Collectors.toList());
     }
+
+    private int parseExcelInteger(String value) {
+        if (value == null || value.isBlank()) return 0;
+        return (int) Double.parseDouble(value);
+    }
+
 }

@@ -32,7 +32,11 @@ public class CustomerSaleRecord {
     private String address;
     private String district;
     private String province;
-    private String facility;
+
+    @ManyToOne
+    @JoinColumn(name = "facility_id")
+    private Region facility;
+
     private String customerType;
     private String source;
     private String cardCode;

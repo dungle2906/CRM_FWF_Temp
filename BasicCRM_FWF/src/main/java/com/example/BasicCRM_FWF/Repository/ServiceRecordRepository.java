@@ -14,7 +14,7 @@ public interface ServiceRecordRepository extends JpaRepository<ServiceRecord, Lo
 
     @Query(value = "SELECT DISTINCT phone_number FROM service_record " +
             "WHERE booking_date BETWEEN :start AND :end " +
-            "AND base_service IS NOT NULL AND base_service <> ''", nativeQuery = true)
+            "AND base_service_id IS NOT NULL AND base_service_id <> ''", nativeQuery = true)
     List<String> findServicePhonesWithBaseServiceBetween(@Param("start") LocalDateTime start,
                                                          @Param("end") LocalDateTime end);
 
