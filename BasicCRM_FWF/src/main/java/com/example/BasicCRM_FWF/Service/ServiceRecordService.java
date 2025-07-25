@@ -1,7 +1,13 @@
 package com.example.BasicCRM_FWF.Service;
 
+import com.example.BasicCRM_FWF.Model.AppliedCard;
+import com.example.BasicCRM_FWF.Model.Region;
 import com.example.BasicCRM_FWF.Model.ServiceRecord;
+import com.example.BasicCRM_FWF.Model.ServiceType;
+import com.example.BasicCRM_FWF.Repository.AppliedCardRepository;
+import com.example.BasicCRM_FWF.Repository.RegionRepository;
 import com.example.BasicCRM_FWF.Repository.ServiceRecordRepository;
+import com.example.BasicCRM_FWF.Repository.ServiceTypeRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.poi.ss.usermodel.*;
@@ -12,6 +18,7 @@ import java.io.InputStream;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
+import java.util.List;
 
 @Service
 @RequiredArgsConstructor
@@ -19,6 +26,9 @@ import java.time.format.DateTimeFormatter;
 public class ServiceRecordService {
 
     private final ServiceRecordRepository repository;
+    private final RegionRepository regionRepository;
+    private final ServiceTypeRepository serviceTypeRepository;
+    private final AppliedCardRepository appliedCardRepository;
 
     public void importFromExcel(MultipartFile file) {
         int success = 0;
@@ -39,26 +49,50 @@ public class ServiceRecordService {
                     String dateStr = getString(row.getCell(3));
                     LocalDateTime bookingDate = LocalDateTime.parse(dateStr, DateTimeFormatter.ofPattern("HH:mm dd/MM/yyyy"));
 
+                    List<Region> regionList = regionRepository.findAll();
+                    Region facilityRecordService = null;
+                    for(Region region : regionList){
+                        if(getString(row.getCell(4)).equals(region.getShop_name())){
+                            facilityRecordService = region;
+                        }
+                    }
+
+                    List<ServiceType> serviceTypeList = serviceTypeRepository.findAll();
+                    ServiceType service_type = null;
+                    for(ServiceType serviceType : serviceTypeList){
+                        if(getString(row.getCell(4)).equals(serviceType.getService_name())){
+                            service_type = serviceType;
+                        }
+                    }
+
+                    List<AppliedCard> appliedCardList = appliedCardRepository.findAll();
+                    AppliedCard appliedCard = null;
+                    for(AppliedCard appliedCard1 : appliedCardList){
+                        if(getString(row.getCell(4)).equals(appliedCard1.getCard_name())){
+                            appliedCard = appliedCard1;
+                        }
+                    }
+
                     ServiceRecord record = ServiceRecord.builder()
-                            .recordId(getString(row.getCell(1)))
-                            .orderId(getString(row.getCell(2)))
+                            .recordId(Integer.parseInt(getString(row.getCell(1)).substring(1)))
+                            .orderId(Integer.parseInt(getString(row.getCell(2)).substring(1)))
                             .bookingDate(bookingDate)
-                            .facility(getString(row.getCell(4)))
+                            .facility(facilityRecordService)
                             .customerName(getString(row.getCell(5)))
                             .phoneNumber(getString(row.getCell(6)))
-                            .baseService(getString(row.getCell(7)))
-                            .appliedCard(getString(row.getCell(8)))
+                            .baseService(service_type)
+                            .appliedCard(appliedCard)
                             .sessionPrice(toBigDecimal(row.getCell(9)))
-                            .sessionType(getString(row.getCell(10)))
-                            .surcharge(getString(row.getCell(11)))
-                            .totalSurcharge(toBigDecimal(row.getCell(12)))
+                            .sessionType(getString(row.getCell(10)).startsWith("Buổi thường") || getString(row.getCell(19)).isBlank()?null:getString(row.getCell(10)))
+                            .surcharge(getString(row.getCell(11)).startsWith("Không có") || getString(row.getCell(19)).isBlank()?null:getString(row.getCell(11)))
+                            .totalSurcharge(getString(row.getCell(12)).startsWith("0") || getString(row.getCell(19)).isBlank()?null:toBigDecimal(row.getCell(12)))
                             .shiftEmployee(getString(row.getCell(13)))
                             .performingEmployee(getString(row.getCell(14)))
                             .employeeSalary(toBigDecimal(row.getCell(15)))
-                            .status(getString(row.getCell(16)))
-                            .rating(getString(row.getCell(17)))
-                            .reviewContent(getString(row.getCell(18)))
-                            .note(getString(row.getCell(19)))
+                            .status(getString(row.getCell(16)).startsWith("Hoàn thành") || getString(row.getCell(19)).isBlank()?null:getString(row.getCell(16)))
+                            .rating(getString(row.getCell(17)).startsWith("Chưa đánh giá") || getString(row.getCell(19)).isBlank()?null:getString(row.getCell(17)))
+                            .reviewContent(getString(row.getCell(18)).startsWith("Chưa có") || getString(row.getCell(19)).isBlank()?null:getString(row.getCell(18)))
+                            .note(getString(row.getCell(19)).startsWith("Chưa có") || getString(row.getCell(19)).isBlank()?null:getString(row.getCell(19)))
                             .build();
 
                     repository.save(record);

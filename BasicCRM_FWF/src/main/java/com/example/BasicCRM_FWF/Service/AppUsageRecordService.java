@@ -39,11 +39,11 @@ public class AppUsageRecordService {
                     LocalDateTime installedAt = LocalDateTime.parse(dateStr, DateTimeFormatter.ofPattern("HH:mm dd/MM/yyyy"));
 
                     AppUsageRecord record = AppUsageRecord.builder()
-                            .customerId(getString(row.getCell(1)))
+                            .customerId(Integer.parseInt(getString(row.getCell(1)).substring(1)))
                             .customerName(getString(row.getCell(2)))
                             .phoneNumber(getString(row.getCell(3)))
-                            .device(getString(row.getCell(4)))
-                            .status(getString(row.getCell(5)))
+                            .device(Boolean.valueOf((Boolean.parseBoolean(getString(row.getCell(4))) ? "IOS" : "Android" )))
+                            .status(getString(row.getCell(5)).startsWith("Onl"))
                             .installedAt(installedAt)
                             .build();
 
