@@ -19,6 +19,7 @@ public interface CustomerSaleRecordRepository extends JpaRepository<CustomerSale
     List<DailyCustomerCount> countNewCustomersByDate(@Param("start") LocalDateTime start,
                                                      @Param("end") LocalDateTime end);
 
+
     @Query(value = "SELECT gender, COUNT(*) FROM customer_sale_record " +
             "WHERE created_at BETWEEN :start AND :end " +
             "GROUP BY gender", nativeQuery = true)
