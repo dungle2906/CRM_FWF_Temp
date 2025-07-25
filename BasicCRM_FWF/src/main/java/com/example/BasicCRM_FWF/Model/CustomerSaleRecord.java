@@ -24,7 +24,7 @@ public class CustomerSaleRecord {
 
     private LocalDateTime createdAt;
     private String customerName;
-    private String customerId;
+    private Integer customerId;
     private String phoneNumber;
     private String email;
     private String dob;

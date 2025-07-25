@@ -6,24 +6,16 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
-import java.time.LocalDateTime;
-
 @Entity
-@Table(name = "app_usage_record")
+@Table(name = "applied_card")
 @Data
 @AllArgsConstructor
 @NoArgsConstructor
 @Builder
-public class AppUsageRecord {
-
+public class AppliedCard {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    private Integer customerId;
-    private String customerName;
-    private String phoneNumber;
-    private Boolean device;
-    private Boolean status;
-    private LocalDateTime installedAt;
+    private String card_name;
 }

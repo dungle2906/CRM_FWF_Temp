@@ -21,14 +21,25 @@ public class ServiceRecord {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    private String recordId;
-    private String orderId;
+    private Integer recordId;
+    private Integer orderId;
     private LocalDateTime bookingDate;
-    private String facility;
+
+    @ManyToOne
+    @JoinColumn(name = "facility_id")
+    private Region facility;
+
     private String customerName;
     private String phoneNumber;
-    private String baseService;
-    private String appliedCard;
+
+    @ManyToOne
+    @JoinColumn(name = "base_service_id")
+    private ServiceType baseService;
+
+    @ManyToOne
+    @JoinColumn(name = "applied_card_id")
+    private AppliedCard appliedCard;
+
     private BigDecimal sessionPrice;
     private String sessionType;
     private String surcharge;

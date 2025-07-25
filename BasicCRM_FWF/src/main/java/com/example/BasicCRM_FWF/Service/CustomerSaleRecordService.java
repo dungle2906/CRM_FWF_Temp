@@ -2,10 +2,7 @@ package com.example.BasicCRM_FWF.Service;
 
 import com.example.BasicCRM_FWF.DTORequest.CustomerReportRequest;
 import com.example.BasicCRM_FWF.DTOResponse.*;
-import com.example.BasicCRM_FWF.Model.AppUsageRecord;
-import com.example.BasicCRM_FWF.Model.CustomerSaleRecord;
-import com.example.BasicCRM_FWF.Model.SalesTransaction;
-import com.example.BasicCRM_FWF.Model.ServiceRecord;
+import com.example.BasicCRM_FWF.Model.*;
 import com.example.BasicCRM_FWF.Repository.AppUsageRecordRepository;
 import com.example.BasicCRM_FWF.Repository.CustomerSaleRecordRepository;
 import com.example.BasicCRM_FWF.Repository.SalesTransactionRepository;
@@ -59,7 +56,7 @@ public class CustomerSaleRecordService {
                     CustomerSaleRecord record = CustomerSaleRecord.builder()
                             .createdAt(createdAt)
                             .customerName(getString(row.getCell(2)))
-                            .customerId(getString(row.getCell(3)))
+                            .customerId(Integer.parseInt(getString(row.getCell(3)).substring(1)))
                             .phoneNumber(getString(row.getCell(4)))
                             .email(getString(row.getCell(5)))
                             .dob(getString(row.getCell(6)))
@@ -499,7 +496,7 @@ public class CustomerSaleRecordService {
         for (ServiceRecord record : records) {
             if (record.getBookingDate() == null || record.getFacility() == null) continue;
 
-            String facility = record.getFacility();
+            String facility = record.getFacility().getShop_name();
             int hour = record.getBookingDate().getHour();
 
             facilityStatsMap
