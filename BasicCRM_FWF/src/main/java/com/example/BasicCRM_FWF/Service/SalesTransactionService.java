@@ -19,6 +19,7 @@ import java.math.RoundingMode;
 import java.sql.Date;
 import java.sql.Timestamp;
 import java.time.Duration;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
@@ -161,7 +162,7 @@ public class SalesTransactionService {
         return rawData.stream()
                 .map(row -> new ShopTypeRevenueDTO(
                         (String) row[0],
-                        ((Date) row[1]).toLocalDate(),
+                        ((Date) row[1]).toLocalDate().atStartOfDay(),
                         (BigDecimal) row[2]))
                 .collect(Collectors.toList());
     }
@@ -278,4 +279,105 @@ public class SalesTransactionService {
                 .toList();
     }
 
+    public List<DailyShopTypeRevenueDTO> getDailyRevenueByShopType(CustomerReportRequest request) {
+        List<Object[]> raw = repository.getDailyRevenueByShopType(request.getFromDate(), request.getToDate());
+
+        return raw.stream()
+                .map(obj -> new DailyShopTypeRevenueDTO(
+                        obj[0] instanceof Date date ? date.toLocalDate().atStartOfDay() : null,
+                        (String) obj[1],
+                        (BigDecimal) obj[2]
+                ))
+                .collect(Collectors.toList());
+    }
+
+    public List<DailyCustomerTypeRevenueDTO> getRevenueByCustomerTypePerDay(CustomerReportRequest request) {
+        List<Object[]> rawData = repository
+                .findRevenueByCustomerTypeAndDate(request.getFromDate(), request.getToDate());
+
+        return rawData.stream().map(obj -> new DailyCustomerTypeRevenueDTO(
+                ((Date) obj[1]).toLocalDate(),
+                obj[0] == null || obj[0].toString().isBlank() ? "Không xác định" : obj[0].toString(),
+                (BigDecimal) obj[2]
+        )).collect(Collectors.toList());
+    }
+
+    public List<TopStoreRevenueDTO> getTopStoreRevenue(CustomerReportRequest request) {
+        List<Object[]> rawData = repository.findTop10StoreRevenue(request.getFromDate(), request.getToDate());
+        return rawData.stream().map(row -> new TopStoreRevenueDTO(
+                (String) row[0],
+                (BigDecimal) row[1],
+                (BigDecimal) row[2]
+        )).collect(Collectors.toList());
+    }
+
+    public List<StoreRevenueStatDTO> getFullStoreRevenueStats(CustomerReportRequest request) {
+        LocalDateTime start = request.getFromDate();
+        LocalDateTime end = request.getToDate();
+
+        List<Object[]> current = repository.findStoreRevenueStatsBetween(start, end);
+
+        LocalDateTime prevEnd = start.minusSeconds(1);
+        LocalDateTime prevStart = prevEnd.minusDays(end.toLocalDate().toEpochDay() - start.toLocalDate().toEpochDay());
+        List<Object[]> previous = repository.findPreviousStoreRevenueStatsBetween(prevStart, prevEnd);
+
+        Map<String, Object[]> prevMap = previous.stream()
+                .collect(Collectors.toMap(row -> row[0].toString(), Function.identity()));
+
+        List<StoreRevenueStatDTO> result = new ArrayList<>();
+
+        BigDecimal totalRevenue = BigDecimal.ZERO;
+        BigDecimal totalFoxie = BigDecimal.ZERO;
+        long totalOrders = 0;
+
+        for (Object[] row : current) {
+            String name = row[0].toString();
+            long orders = ((Number) row[1]).longValue();
+            BigDecimal revenue = (BigDecimal) row[2];
+            BigDecimal foxie = (BigDecimal) row[3];
+
+            Object[] prevRow = prevMap.getOrDefault(name, new Object[]{name, 0L, BigDecimal.ZERO, BigDecimal.ZERO});
+            long prevOrders = ((Number) prevRow[1]).longValue();
+            BigDecimal prevRevenue = (BigDecimal) prevRow[2];
+
+            long delta = orders - prevOrders;
+            double growth = prevRevenue.compareTo(BigDecimal.ZERO) == 0 ? 100.0 :
+                    revenue.subtract(prevRevenue).multiply(BigDecimal.valueOf(100)).divide(prevRevenue, 2, RoundingMode.HALF_UP).doubleValue();
+
+            result.add(new StoreRevenueStatDTO(name, orders, delta, revenue, foxie, growth, 0.0, 0.0, 0.0));
+
+            totalRevenue = totalRevenue.add(revenue);
+            totalFoxie = totalFoxie.add(foxie);
+            totalOrders += orders;
+        }
+
+        for (StoreRevenueStatDTO dto : result) {
+            dto.setRevenuePercent(
+                    totalRevenue.compareTo(BigDecimal.ZERO) == 0 ? 0.0 :
+                            dto.getActualRevenue().multiply(BigDecimal.valueOf(100)).divide(totalRevenue, 2, RoundingMode.HALF_UP).doubleValue()
+            );
+            dto.setFoxiePercent(
+                    totalFoxie.compareTo(BigDecimal.ZERO) == 0 ? 0.0 :
+                            dto.getFoxieRevenue().multiply(BigDecimal.valueOf(100)).divide(totalFoxie, 2, RoundingMode.HALF_UP).doubleValue()
+            );
+            dto.setOrderPercent(
+                    totalOrders == 0 ? 0.0 :
+                            ((double) dto.getCurrentOrders() * 100) / totalOrders
+            );
+        }
+
+        return result;
+    }
+
+    public List<DailyShopOrderStatDTO> getDailyOrderStats(CustomerReportRequest request) {
+        List<Object[]> rawData = repository.findDailyOrderAndShopStats(request.getFromDate(), request.getToDate());
+
+        return rawData.stream()
+                .map(obj -> new DailyShopOrderStatDTO(
+                        ((Date) obj[0]).toLocalDate(),
+                        ((Number) obj[1]).longValue(),
+                        ((Number) obj[2]).intValue()
+                ))
+                .collect(Collectors.toList());
+    }
 }

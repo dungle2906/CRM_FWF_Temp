@@ -1,5 +1,10 @@
 package com.example.BasicCRM_FWF.Service;
 
+import com.example.BasicCRM_FWF.DTORequest.CustomerReportRequest;
+import com.example.BasicCRM_FWF.DTOResponse.DailyServiceTypeStatDTO;
+import com.example.BasicCRM_FWF.DTOResponse.RegionServiceTypeUsageDTO;
+import com.example.BasicCRM_FWF.DTOResponse.ServiceSummaryDTO;
+import com.example.BasicCRM_FWF.DTOResponse.ServiceUsageDTO;
 import com.example.BasicCRM_FWF.Model.AppliedCard;
 import com.example.BasicCRM_FWF.Model.Region;
 import com.example.BasicCRM_FWF.Model.ServiceRecord;
@@ -16,6 +21,7 @@ import org.springframework.web.multipart.MultipartFile;
 
 import java.io.InputStream;
 import java.math.BigDecimal;
+import java.sql.Date;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.List;
@@ -129,5 +135,77 @@ public class ServiceRecordService {
         } catch (Exception e) {
             return BigDecimal.ZERO;
         }
+    }
+
+    public List<DailyServiceTypeStatDTO> getServiceTypeBreakdown(CustomerReportRequest request) {
+        List<Object[]> raw = repository.countServiceTypesPerDay(request.getFromDate(), request.getToDate());
+        return raw.stream()
+                .map(obj -> new DailyServiceTypeStatDTO(
+                        ((Date) obj[0]).toLocalDate(),
+                        (String) obj[1],
+                        ((Number) obj[2]).longValue()
+                )).collect(Collectors.toList());
+    }
+
+    public ServiceSummaryDTO getServiceSummary(CustomerReportRequest request) {
+        LocalDateTime start = request.getFromDate();
+        LocalDateTime end = request.getToDate();
+
+        LocalDateTime prevStart = start.minusDays(end.toLocalDate().toEpochDay() - start.toLocalDate().toEpochDay() + 1);
+        LocalDateTime prevEnd = start.minusSeconds(1);
+
+        long combo = count("combo", start, end);
+        long le = count("dv", start, end);
+        long ct = count("qt", start, end);
+        long gift = count("fox", start, end);
+        long total = combo + le + ct + gift;
+
+        long prevCombo = count("combo", prevStart, prevEnd);
+        long prevLe = count("dv", prevStart, prevEnd);
+        long prevCT = count("qt", prevStart, prevEnd);
+        long prevGift = count("fox", prevStart, prevEnd);
+        long prevTotal = prevCombo + prevLe + prevCT + prevGift;
+
+        return new ServiceSummaryDTO(
+                combo, le, ct, gift, total,
+                prevCombo, prevLe, prevCT, prevGift, prevTotal,
+                growth(prevCombo, combo),
+                growth(prevLe, le),
+                growth(prevCT, ct),
+                growth(prevGift, gift),
+                growth(prevTotal, total)
+        );
+    }
+
+    private long count(String prefix, LocalDateTime start, LocalDateTime end) {
+        return repository.countByServiceCodePrefix(prefix, start, end);
+    }
+
+    private double growth(long prev, long curr) {
+        if (prev == 0) return 100.0;
+        return ((double) (curr - prev) / prev) * 100.0;
+    }
+
+    public List<RegionServiceTypeUsageDTO> getServiceUsageByRegion(CustomerReportRequest request) {
+        List<Object[]> result = repository.findRegionServiceTypeCount(
+                request.getFromDate(), request.getToDate()
+        );
+
+        return result.stream().map(r -> new RegionServiceTypeUsageDTO(
+                r[0].toString(),
+                r[1].toString(),
+                ((Number) r[2]).longValue()
+        )).collect(Collectors.toList());
+    }
+
+    public List<ServiceUsageDTO> getServiceUsageByShop(CustomerReportRequest request) {
+        List<Object[]> raw = repository.findServiceUsageByShop(request.getFromDate(), request.getToDate());
+
+        // Convert each result row into a DTO
+        return raw.stream().map(obj -> new ServiceUsageDTO(
+                obj[0].toString(),  // shop name
+                obj[1].toString(),  // service type
+                ((Number) obj[2]).intValue() // total count
+        )).collect(Collectors.toList());
     }
 }

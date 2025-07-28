@@ -50,4 +50,30 @@ public class SalesTransactionController {
         return ResponseEntity.ok(service.getActualRevenuePie(request));
     }
 
+    @PostMapping("/daily-by-shop-type")
+    public List<DailyShopTypeRevenueDTO> getDailyRevenueByShopType(@RequestBody CustomerReportRequest request) {
+        return service.getDailyRevenueByShopType(request);
+    }
+
+    @PostMapping("/daily-by-customer-type")
+    public ResponseEntity<List<DailyCustomerTypeRevenueDTO>> getDailyRevenueByCustomerType(
+            @RequestBody CustomerReportRequest request) {
+        return ResponseEntity.ok(service.getRevenueByCustomerTypePerDay(request));
+    }
+
+    @PostMapping("/top-store-revenue")
+    public List<TopStoreRevenueDTO> topStoreRevenue(@RequestBody CustomerReportRequest request) {
+        return service.getTopStoreRevenue(request);
+    }
+
+    @PostMapping("/full-store-revenue")
+    public List<StoreRevenueStatDTO> getFullStoreRevenue(@RequestBody CustomerReportRequest request) {
+        return service.getFullStoreRevenueStats(request);
+    }
+
+    @PostMapping("/daily-order-stats")
+    public List<DailyShopOrderStatDTO> getDailyOrderStats(@RequestBody CustomerReportRequest request) {
+        return service.getDailyOrderStats(request);
+    }
+
 }

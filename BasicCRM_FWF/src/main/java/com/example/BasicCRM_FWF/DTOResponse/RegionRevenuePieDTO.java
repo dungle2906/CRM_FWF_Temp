@@ -11,11 +11,9 @@ import java.math.BigDecimal;
 public class RegionRevenuePieDTO {
     private String region;
     private BigDecimal actualRevenue;
-    private double revenuePercent;
 
     public RegionRevenuePieDTO(String region, BigDecimal actualRevenue, double revenuePercent) {
         this.region = region;
         this.actualRevenue = actualRevenue;
-        this.revenuePercent = revenuePercent;
     }
 }
