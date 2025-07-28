@@ -63,4 +63,16 @@ public interface SalesTransactionRepository extends JpaRepository<SalesTransacti
     """, nativeQuery = true)
     List<Object[]> fetchOrderAndRevenueByRegion(@Param("start") LocalDateTime start,
                                                  @Param("end") LocalDateTime end);
+
+    @Query(value = """
+    SELECT r.region AS region,
+           SUM(s.cash_transfer_credit) AS actualRevenue
+    FROM sales_transaction s
+    JOIN region r ON s.facility_id = r.id
+    WHERE s.order_date BETWEEN :start AND :end
+    GROUP BY r.region
+""", nativeQuery = true)
+    List<Object[]> fetchActualRevenueByRegion(@Param("start") LocalDateTime start,
+                                              @Param("end") LocalDateTime end);
+
 }
