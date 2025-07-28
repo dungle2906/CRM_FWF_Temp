@@ -258,4 +258,24 @@ public class SalesTransactionService {
                 row -> new Object[]{ row[1], row[2] }
         ));
     }
+
+    public List<RegionRevenuePieDTO> getActualRevenuePie(CustomerReportRequest request) {
+        List<Object[]> raw = repository.fetchActualRevenueByRegion(request.getFromDate(), request.getToDate());
+
+        BigDecimal total = raw.stream()
+                .map(row -> (BigDecimal) row[1])
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
+
+        return raw.stream()
+                .map(row -> {
+                    String region = (String) row[0];
+                    BigDecimal revenue = (BigDecimal) row[1];
+                    double percent = total.compareTo(BigDecimal.ZERO) == 0 ? 0.0 :
+                            revenue.multiply(BigDecimal.valueOf(100))
+                                    .divide(total, 2, RoundingMode.HALF_UP).doubleValue();
+                    return new RegionRevenuePieDTO(region, revenue, percent);
+                })
+                .toList();
+    }
+
 }

@@ -44,4 +44,10 @@ public class SalesTransactionController {
     public ResponseEntity<List<RegionRevenueStatDTO>> getRegionStat(@RequestBody CustomerReportRequest request) {
         return ResponseEntity.ok(service.getStatus(request));
     }
+
+    @PostMapping("/region-actual-pie")
+    public ResponseEntity<List<RegionRevenuePieDTO>> getPie(@RequestBody CustomerReportRequest request) {
+        return ResponseEntity.ok(service.getActualRevenuePie(request));
+    }
+
 }
