@@ -1,10 +1,7 @@
 package com.example.BasicCRM_FWF.Controller;
 
 import com.example.BasicCRM_FWF.DTORequest.CustomerReportRequest;
-import com.example.BasicCRM_FWF.DTOResponse.DailyServiceTypeStatDTO;
-import com.example.BasicCRM_FWF.DTOResponse.RegionServiceTypeUsageDTO;
-import com.example.BasicCRM_FWF.DTOResponse.ServiceSummaryDTO;
-import com.example.BasicCRM_FWF.DTOResponse.ServiceUsageDTO;
+import com.example.BasicCRM_FWF.DTOResponse.*;
 import com.example.BasicCRM_FWF.Service.ServiceRecordService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
@@ -47,5 +44,30 @@ public class ServiceRecordController {
     @PostMapping("/shop")
     public List<ServiceUsageDTO> getUsageByShop(@RequestBody CustomerReportRequest request) {
         return service.getServiceUsageByShop(request);
+    }
+
+    @PostMapping("/top10-services-usage")
+    public ResponseEntity<List<TopServiceUsage>> getTop10Services(@RequestBody CustomerReportRequest request) {
+        return ResponseEntity.ok(service.getTop10ServiceUsage(request));
+    }
+
+    @PostMapping("/top10-services-revenue")
+    public ResponseEntity<List<TopServiceRevenue>> getTop10ServicesRevenue(@RequestBody CustomerReportRequest request) {
+        return ResponseEntity.ok(service.getTop10ServicesByRevenue(request));
+    }
+
+    @PostMapping("/bottom3-services-revenue")
+    public ResponseEntity<List<TopServiceRevenue>> getBottom3ServicesRevenue(@RequestBody CustomerReportRequest request) {
+        return ResponseEntity.ok(service.getBottom3ServiceRevenue(request));
+    }
+
+    @PostMapping("/bottom3-services-usage")
+    public ResponseEntity<List<TopServiceUsage>> getBottom3ServicesUsage(@RequestBody CustomerReportRequest request) {
+        return ResponseEntity.ok(service.getBottom3ServicesUsage(request));
+    }
+
+    @PostMapping("/top-table")
+    public ResponseEntity<List<ServiceStatsDTO>> getTopServiceStats(@RequestBody CustomerReportRequest request) {
+        return ResponseEntity.ok(service.getTopServiceTable(request));
     }
 }

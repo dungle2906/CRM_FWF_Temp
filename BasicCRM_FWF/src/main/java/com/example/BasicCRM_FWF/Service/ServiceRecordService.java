@@ -1,10 +1,7 @@
 package com.example.BasicCRM_FWF.Service;
 
 import com.example.BasicCRM_FWF.DTORequest.CustomerReportRequest;
-import com.example.BasicCRM_FWF.DTOResponse.DailyServiceTypeStatDTO;
-import com.example.BasicCRM_FWF.DTOResponse.RegionServiceTypeUsageDTO;
-import com.example.BasicCRM_FWF.DTOResponse.ServiceSummaryDTO;
-import com.example.BasicCRM_FWF.DTOResponse.ServiceUsageDTO;
+import com.example.BasicCRM_FWF.DTOResponse.*;
 import com.example.BasicCRM_FWF.Model.AppliedCard;
 import com.example.BasicCRM_FWF.Model.Region;
 import com.example.BasicCRM_FWF.Model.ServiceRecord;
@@ -21,9 +18,12 @@ import org.springframework.web.multipart.MultipartFile;
 
 import java.io.InputStream;
 import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.sql.Date;
 import java.time.LocalDateTime;
+import java.time.LocalTime;
 import java.time.format.DateTimeFormatter;
+import java.time.temporal.ChronoUnit;
 import java.util.List;
 import java.util.Map;
 import java.util.function.Function;
@@ -208,4 +208,107 @@ public class ServiceRecordService {
                 ((Number) obj[2]).intValue() // total count
         )).collect(Collectors.toList());
     }
+
+    public List<TopServiceUsage> getTop10ServiceUsage(CustomerReportRequest request) {
+        LocalDateTime start = request.getFromDate();
+        LocalDateTime end = request.getToDate();
+
+        // Map raw query result into DTOs
+        return repository.findTop10ServiceNames(start, end).stream()
+                .map(row -> new TopServiceUsage(
+                        row[0] != null ? row[0].toString() : "Không xác định",
+                        ((Number) row[1]).longValue()
+                ))
+                .collect(Collectors.toList());
+    }
+
+    public List<TopServiceRevenue> getTop10ServicesByRevenue(CustomerReportRequest request) {
+        List<Object[]> rawResults = repository.findTop10ServicesByRevenue(
+                request.getFromDate(),
+                request.getToDate()
+        );
+
+        // Convert raw query result to typed DTOs
+        return rawResults.stream()
+                .map(obj -> new TopServiceRevenue(
+                        obj[0] != null ? obj[0].toString() : "Không xác định", // Service name or fallback
+                        obj[1] != null ? (BigDecimal) obj[1] : BigDecimal.ZERO // Convert revenue
+                ))
+                .collect(Collectors.toList());
+    }
+
+    public List<TopServiceRevenue> getBottom3ServiceRevenue(CustomerReportRequest request) {
+        LocalDateTime start = request.getFromDate();
+        LocalDateTime end = request.getToDate();
+
+        return repository.findTopBottomServicesRevenue(start, end).stream()
+                .map(objects -> new TopServiceRevenue(
+                        objects[0] != null ? objects[0].toString() : "Không xác định",
+                        objects[1] != null ? (BigDecimal) objects[1] : BigDecimal.ZERO
+                )).collect(Collectors.toList());
+    }
+
+    public List<TopServiceUsage> getBottom3ServicesUsage(CustomerReportRequest request) {
+        LocalDateTime start = request.getFromDate();
+        LocalDateTime end = request.getToDate();
+
+        return repository.findTopBottomServicesUsage(start, end).stream()
+                .map(objects -> new TopServiceUsage(
+                        objects[0] != null ? objects[0].toString() : "Không xác định",
+                        ((Number) objects[1]).longValue()
+                )).collect(Collectors.toList());
+    }
+
+    public List<ServiceStatsDTO> getTopServiceTable(CustomerReportRequest request) {
+        LocalDateTime start = request.getFromDate();
+        LocalDateTime end = request.getToDate();
+
+        long rangeDays = ChronoUnit.DAYS.between(start, end);
+        LocalDateTime prevStart = start.minusDays(rangeDays);
+        LocalDateTime prevEnd = end.minusDays(rangeDays);
+
+        Map<String, Object[]> previousData = repository.findTop10ServicesWithPreviousData(prevStart, prevEnd)
+                .stream()
+                .collect(Collectors.toMap(
+                        row -> row[0].toString(),
+                        row -> row
+                ));
+
+        List<Object[]> currentData = repository.findTop10ServicesWithCurrentData(start, end);
+        long totalUsage = currentData.stream().mapToLong(r -> ((Number) r[2]).longValue()).sum();
+        BigDecimal totalRevenue = currentData.stream()
+                .map(r -> (BigDecimal) r[3])
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
+
+        return currentData.stream().map(row -> {
+            String name = row[0].toString();
+            String type = row[1].toString();
+            long currentCount = ((Number) row[2]).longValue();
+            BigDecimal currentRevenue = (BigDecimal) row[3];
+
+            Object[] prev = previousData.get(name);
+            long prevCount = prev != null ? ((Number) prev[1]).longValue() : 0;
+            BigDecimal prevRevenue = prev != null && prev[2] != null ? (BigDecimal) prev[2] : BigDecimal.ZERO;
+
+            long deltaCount = currentCount - prevCount;
+            double deltaRevenuePct = prevRevenue.compareTo(BigDecimal.ZERO) == 0 ? 100.0 :
+                    currentRevenue.subtract(prevRevenue).multiply(BigDecimal.valueOf(100)).divide(prevRevenue, 2, RoundingMode.HALF_UP).doubleValue();
+
+            double usagePct = totalUsage == 0 ? 0.0 : ((double) currentCount / totalUsage) * 100.0;
+            double revenuePct = totalRevenue.compareTo(BigDecimal.ZERO) == 0 ? 0.0 :
+                    currentRevenue.multiply(BigDecimal.valueOf(100)).divide(totalRevenue, 2, RoundingMode.HALF_UP).doubleValue();
+
+            return ServiceStatsDTO.builder()
+                    .serviceName(name)
+                    .type(type)
+                    .usageCount(currentCount)
+                    .usageDeltaCount(deltaCount)
+                    .usagePercent(usagePct)
+                    .totalRevenue(currentRevenue)
+                    .revenueDeltaPercent(deltaRevenuePct)
+                    .revenuePercent(revenuePct)
+                    .build();
+        }).collect(Collectors.toList());
+    }
+
 }

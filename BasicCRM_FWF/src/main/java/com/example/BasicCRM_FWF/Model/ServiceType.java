@@ -20,4 +20,8 @@ public class ServiceType {
     private String service_code;
 
     private String service_name;
+
+    private String price;
+
+    private String category;
 }

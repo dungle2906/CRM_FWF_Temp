@@ -4,6 +4,8 @@ import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
+import java.math.BigDecimal;
+
 // DTO class to represent the service usage summary per shop
 @Data
 @AllArgsConstructor
