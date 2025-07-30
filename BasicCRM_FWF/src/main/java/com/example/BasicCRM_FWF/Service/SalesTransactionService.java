@@ -4,8 +4,10 @@ import com.example.BasicCRM_FWF.DTORequest.CustomerReportRequest;
 import com.example.BasicCRM_FWF.DTOResponse.*;
 import com.example.BasicCRM_FWF.Model.Region;
 import com.example.BasicCRM_FWF.Model.SalesTransaction;
+import com.example.BasicCRM_FWF.Model.ServiceType;
 import com.example.BasicCRM_FWF.Repository.RegionRepository;
 import com.example.BasicCRM_FWF.Repository.SalesTransactionRepository;
+import com.example.BasicCRM_FWF.Repository.ServiceTypeRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.poi.ss.usermodel.*;
@@ -36,6 +38,7 @@ public class SalesTransactionService {
 
     private final SalesTransactionRepository repository;
     private final RegionRepository regionRepository;
+    private final ServiceTypeRepository serviceTypeRepository;
 
     public void importFromExcel(MultipartFile file) {
         int successCount = 0;
@@ -87,6 +90,35 @@ public class SalesTransactionService {
                         continue;
                     }
 
+                    ServiceType serviceType = null;
+                    String allComboString = getString(row.getCell(26)).trim().replaceAll("\\s+", " ");
+                    String originalString = allComboString.substring(0, allComboString.indexOf(";"));
+                    String perfectString = cleanTailNumber(originalString);
+
+                    if (perfectString.endsWith("))")) {
+                        perfectString = perfectString.substring(0, perfectString.length() - 1);
+                    } else if (perfectString.endsWith(" )")) {
+                        int open = perfectString.lastIndexOf("(");
+                        int close = perfectString.lastIndexOf(")");
+                        if (open != -1 && close != -1 && close > open) {
+                            String tag = perfectString.substring(open + 1, close).trim();  // Cắt rồi trim
+                            System.out.println(tag);  // "buổi lẻ"
+                        }
+                    }
+
+                    if (perfectString.startsWith(perfectString.substring(0, 30)) && perfectString.endsWith("lẻ)")) {
+                        String startString = perfectString.substring(0, 30);
+                        serviceType = serviceTypeRepository.findByServiceName(startString + "%", "%lẻ)");
+                    } else if (perfectString.startsWith(perfectString.substring(0, 30)) && perfectString.endsWith("ard)")) {
+                        String startString = perfectString.substring(0, 30);
+                        serviceType = serviceTypeRepository.findByServiceName(startString + "%", "%ard)");
+                    } else if (perfectString.startsWith(perfectString.substring(0, 30)) && perfectString.endsWith("ĐẦU)")) {
+                        String startString = perfectString.substring(0, 30);
+                        serviceType = serviceTypeRepository.findByServiceName(startString + "%", "%ĐẦU)");
+                    } else if (perfectString.toUpperCase().startsWith("QT KÈM THẺ TIỀN FOXIE")) {
+                        serviceType = serviceTypeRepository.findServiceTemp();
+                    }
+
                     SalesTransaction st = SalesTransaction.builder()
                             .orderCode(Integer.parseInt(orderCodeStr.substring(1)))
                             .facility(facilityRecordService)
@@ -104,7 +136,8 @@ public class SalesTransactionService {
                             .prepaidCard(toBigDecimal(getString(row.getCell(22)).startsWith("0") ? null : row.getCell(22)))
                             .debt(toBigDecimal(getString(row.getCell(23)).startsWith("0") ? null : row.getCell(23)))
                             .note(getString(row.getCell(25)).isBlank() ? null : getString(row.getCell(25)))
-                            .details(getString(row.getCell(26)))
+                            .details(perfectString)
+                            .serviceType(serviceType)
                             .build();
 
                     repository.save(st);
@@ -380,4 +413,9 @@ public class SalesTransactionService {
                 ))
                 .collect(Collectors.toList());
     }
+
+    public String cleanTailNumber(String s) {
+        return s.replaceAll("\\s*\\(\\d+\\)$", "");
+    }
+
 }

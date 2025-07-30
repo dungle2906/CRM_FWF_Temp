@@ -44,4 +44,8 @@ public class SalesTransaction {
 
     @Lob
     private String details;
+
+    @ManyToOne
+    @JoinColumn(name = "service_type_id")
+    private ServiceType serviceType;
 }

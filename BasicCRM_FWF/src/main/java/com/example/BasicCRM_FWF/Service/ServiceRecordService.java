@@ -51,9 +51,6 @@ public class ServiceRecordService {
             Map<String, Region> regionMap = regionRepository.findAll().stream()
                     .collect(Collectors.toMap(r -> r.getShop_name().trim().toLowerCase(), Function.identity()));
 
-            Map<String, ServiceType> serviceTypeMap = serviceTypeRepository.findAll().stream()
-                    .collect(Collectors.toMap(s -> s.getService_name().trim().toLowerCase(), Function.identity()));
-
             Map<String, AppliedCard> appliedCardMap = appliedCardRepository.findAll().stream()
                     .collect(Collectors.toMap(c -> c.getCard_name().trim().toLowerCase(), Function.identity()));
 
@@ -71,8 +68,12 @@ public class ServiceRecordService {
                     String key = getString(row.getCell(4)).trim().toLowerCase();
                     Region facility = regionMap.get(key);
 
-                    String key2 = getString(row.getCell(7)).trim().toLowerCase();
-                    ServiceType serviceType = serviceTypeMap.get(key2);
+
+                    String key2 = getString(row.getCell(7)).trim().replaceAll("\\s+", " ");
+                    if(key2.startsWith("QUÀ TẶNG")) { key2 = "QUÀ TẶNG KÈM THẺ TIỀN FOXIE 1,2 - DV CRYO CLEANSE - RỬA MẶT CẤP ẨM, DA CĂNG BÓNG";}
+                    if(key2.startsWith("COMBO 8: SOOTHING FOR SENSITIVE SKIN - LÀM DỊU")) { key2 = "COMBO 8: SOOTHING FOR SENSITIVE SKIN - LÀM DỊU VÀ CHĂM SÓC DA NHẠY CẢM (buổi lẻ)"; }
+
+                    ServiceType serviceType = serviceTypeRepository.findByName(key2+"%");
 
                     String key3 = getString(row.getCell(8)).trim().toLowerCase();
                     AppliedCard appliedCard = appliedCardMap.get(key3);
