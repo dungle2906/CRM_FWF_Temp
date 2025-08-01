@@ -8,6 +8,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
+import java.io.IOException;
 import java.util.List;
 
 // BÁO CÁO DOANH SỐ
@@ -19,8 +20,14 @@ public class SalesTransactionController {
 
     private final SalesTransactionService service;
 
+    @PostMapping("/upload2")
+    public ResponseEntity<String> upload2(@RequestParam("file") MultipartFile file) throws IOException {
+        service.importFromExcelTestChange(file);
+        return ResponseEntity.ok("Upload successful" + file.getOriginalFilename());
+    }
+
     @PostMapping("/upload")
-    public ResponseEntity<String> upload(@RequestParam("file") MultipartFile file) {
+    public ResponseEntity<String> upload(@RequestParam("file") MultipartFile file) throws IOException {
         service.importFromExcel(file);
         return ResponseEntity.ok("Upload successful" + file.getOriginalFilename());
     }
@@ -76,4 +83,13 @@ public class SalesTransactionController {
         return service.getDailyOrderStats(request);
     }
 
+    @PostMapping("/daily-region-revenue")
+    public ResponseEntity<List<DailyRegionRevenueDTO>> getDailyRevenue(@RequestBody CustomerReportRequest request) {
+        return ResponseEntity.ok(service.getDailyRevenue(request));
+    }
+
+    @PostMapping("/payment-by-region")
+    public ResponseEntity<List<RegionPaymentDTO>> getPaymentByRegion(@RequestBody CustomerReportRequest request) {
+        return ResponseEntity.ok(service.getPaymentByRegion(request));
+    }
 }

@@ -150,4 +150,15 @@ public interface SalesTransactionRepository extends JpaRepository<SalesTransacti
             "ORDER BY DATE(order_date)", nativeQuery = true)
     List<Object[]> findDailyOrderAndShopStats(@Param("start") LocalDateTime start,
                                               @Param("end") LocalDateTime end);
+
+    @Query("SELECT st.facility.region, " +
+            "       COALESCE(SUM(st.cash), 0), " +
+            "       COALESCE(SUM(st.transfer), 0), " +
+            "       COALESCE(SUM(st.creditCard), 0) " +
+            "FROM SalesTransaction st " +
+            "WHERE st.orderDate BETWEEN :start AND :end " +
+            "  AND st.cashTransferCredit > 0 " +
+            "GROUP BY st.facility.region")
+    List<Object[]> findPaymentByRegion(LocalDateTime start, LocalDateTime end);
+
 }

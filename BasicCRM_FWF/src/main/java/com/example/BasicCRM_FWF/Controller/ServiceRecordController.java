@@ -21,7 +21,7 @@ public class ServiceRecordController {
 
     @PostMapping("/upload")
     public ResponseEntity<String> upload(@RequestParam("file") MultipartFile file) {
-        service.importFromExcel(file);
+        service.importFromExcel2(file);
         return ResponseEntity.ok("Upload completed. Check logs for details." + file.getOriginalFilename());
     }
 
