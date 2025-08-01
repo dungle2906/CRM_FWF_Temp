@@ -10,12 +10,12 @@ import java.math.BigDecimal;
 import java.time.LocalDateTime;
 
 @Entity
-@Table(name = "sales_transaction")
+@Table(name = "sales_transaction_temp")
 @Data
 @AllArgsConstructor
 @NoArgsConstructor
 @Builder
-public class SalesTransaction {
+public class SalesTransactionTemp {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -27,19 +27,6 @@ public class SalesTransaction {
     @JoinColumn(name = "facility_id")
     private Region facility;
 
-    private LocalDateTime orderDate;
-    private String customerName;
-    private String phoneNumber;
-    private BigDecimal originalPrice;
-    private BigDecimal priceChange;
-    private BigDecimal totalAmount;
-    private BigDecimal cashTransferCredit;
-    private BigDecimal cash;
-    private BigDecimal transfer;
-    private BigDecimal creditCard;
-    private BigDecimal wallet;
-    private BigDecimal prepaidCard;
-    private BigDecimal debt;
     private String note;
 
     @Lob

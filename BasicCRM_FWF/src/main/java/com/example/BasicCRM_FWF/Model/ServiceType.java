@@ -17,5 +17,11 @@ public class ServiceType {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
+    private String service_code;
+
     private String service_name;
+
+    private String price;
+
+    private String category;
 }

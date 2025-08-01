@@ -49,4 +49,7 @@ public interface CustomerSaleRecordRepository extends JpaRepository<CustomerSale
     List<String> findPhonesByCreatedAtBetween(@Param("start") LocalDateTime start,
                                               @Param("end") LocalDateTime end);
 
+//    @Query(value = "SELECT DISTINCT COALESCE(customer_type, 'Không xác định') FROM customer_sale_record", nativeQuery = true)
+//    List<String> findAllCustomerTypes();
+
 }

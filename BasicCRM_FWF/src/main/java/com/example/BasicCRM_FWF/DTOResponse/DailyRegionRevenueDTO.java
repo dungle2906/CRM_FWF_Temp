@@ -5,15 +5,13 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 
 import java.math.BigDecimal;
+import java.time.LocalDate;
 
 @Data
+@AllArgsConstructor
 @NoArgsConstructor
-public class RegionRevenuePieDTO {
+public class DailyRegionRevenueDTO {
+    private LocalDate date;
     private String region;
     private BigDecimal actualRevenue;
-
-    public RegionRevenuePieDTO(String region, BigDecimal actualRevenue, double revenuePercent) {
-        this.region = region;
-        this.actualRevenue = actualRevenue;
-    }
 }
