@@ -1,5 +1,8 @@
 package com.example.BasicCRM_FWF.Helper;
 
+import com.example.BasicCRM_FWF.Model.ServiceType;
+import com.example.BasicCRM_FWF.Repository.ServiceTypeRepository;
+
 import java.time.Duration;
 import java.time.LocalDate;
 import java.time.LocalDateTime;

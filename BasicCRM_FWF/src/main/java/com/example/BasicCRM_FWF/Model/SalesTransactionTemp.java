@@ -27,6 +27,19 @@ public class SalesTransactionTemp {
     @JoinColumn(name = "facility_id")
     private Region facility;
 
+    private LocalDateTime orderDate;
+    private String customerName;
+    private String phoneNumber;
+    private BigDecimal originalPrice;
+    private BigDecimal priceChange;
+    private BigDecimal totalAmount;
+    private BigDecimal cashTransferCredit;
+    private BigDecimal cash;
+    private BigDecimal transfer;
+    private BigDecimal creditCard;
+    private BigDecimal wallet;
+    private BigDecimal prepaidCard;
+    private BigDecimal debt;
     private String note;
 
     @Lob

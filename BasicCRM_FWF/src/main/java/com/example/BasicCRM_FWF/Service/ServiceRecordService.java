@@ -2,14 +2,9 @@ package com.example.BasicCRM_FWF.Service;
 
 import com.example.BasicCRM_FWF.DTORequest.CustomerReportRequest;
 import com.example.BasicCRM_FWF.DTOResponse.*;
-import com.example.BasicCRM_FWF.Model.AppliedCard;
-import com.example.BasicCRM_FWF.Model.Region;
-import com.example.BasicCRM_FWF.Model.ServiceRecord;
-import com.example.BasicCRM_FWF.Model.ServiceType;
-import com.example.BasicCRM_FWF.Repository.AppliedCardRepository;
-import com.example.BasicCRM_FWF.Repository.RegionRepository;
-import com.example.BasicCRM_FWF.Repository.ServiceRecordRepository;
-import com.example.BasicCRM_FWF.Repository.ServiceTypeRepository;
+import com.example.BasicCRM_FWF.Helper.Helper;
+import com.example.BasicCRM_FWF.Model.*;
+import com.example.BasicCRM_FWF.Repository.*;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.poi.ss.usermodel.*;
@@ -39,84 +34,187 @@ public class ServiceRecordService {
     private final ServiceTypeRepository serviceTypeRepository;
     private final AppliedCardRepository appliedCardRepository;
 
-//    public void importFromExcel(MultipartFile file) {
-//        int success = 0;
-//        int failed = 0;
-//
-//        try (InputStream is = file.getInputStream()) {
-//            Workbook workbook = WorkbookFactory.create(is);
-//            Sheet sheet = workbook.getSheetAt(0);
-//
-//            // Map chuẩn hóa cho Region, ServiceType, AppliedCard
-//            Map<String, Region> regionMap = regionRepository.findAll().stream()
-//                    .collect(Collectors.toMap(r -> r.getShop_name().trim().toLowerCase(), Function.identity()));
-//
-//            Map<String, AppliedCard> appliedCardMap = appliedCardRepository.findAll().stream()
-//                    .collect(Collectors.toMap(c -> c.getCard_name().trim().toLowerCase(), Function.identity()));
-//
-//            for (int i = 2; i <= sheet.getLastRowNum(); i++) {
-//                Row row = sheet.getRow(i);
-//                if (row == null || isRowEmpty(row)) {
-//                    log.info("Stopped at row {} (blank)", i);
-//                    break;
-//                }
-//
-//                try {
-//                    String dateStr = getString(row.getCell(3));
-//                    LocalDateTime bookingDate = LocalDateTime.parse(dateStr, DateTimeFormatter.ofPattern("HH:mm dd/MM/yyyy"));
-//
-//                    String key = getString(row.getCell(4)).trim().toLowerCase();
-//                    Region facility = regionMap.get(key);
-//
-//
-//                    String key2 = getString(row.getCell(7)).trim().replaceAll("\\s+", " ");
-//                    if(key2.startsWith("QUÀ TẶNG")) { key2 = "QUÀ TẶNG KÈM THẺ TIỀN FOXIE 1,2 - DV CRYO CLEANSE - RỬA MẶT CẤP ẨM, DA CĂNG BÓNG";}
-//                    if(key2.startsWith("COMBO 8: SOOTHING FOR SENSITIVE SKIN - LÀM DỊU")) { key2 = "COMBO 8: SOOTHING FOR SENSITIVE SKIN - LÀM DỊU VÀ CHĂM SÓC DA NHẠY CẢM (buổi lẻ)"; }
-//
-//                    ServiceType serviceType = serviceTypeRepository.findByName(key2+"%");
-//
-//                    String key3 = getString(row.getCell(8)).trim().toLowerCase();
-//                    AppliedCard appliedCard = appliedCardMap.get(key3);
-//
-//                    ServiceRecord record = ServiceRecord.builder()
-//                            .recordId(Integer.parseInt(getString(row.getCell(1)).substring(1)))
-//                            .orderId(Integer.parseInt(getString(row.getCell(2)).substring(1)))
-//                            .bookingDate(bookingDate)
-//                            .facility(facility)
-//                            .customerName(getString(row.getCell(5)))
-//                            .phoneNumber(getString(row.getCell(6)))
-//                            .baseService(serviceType)
-//                            .appliedCard(appliedCard)
-//                            .sessionPrice(toBigDecimal(row.getCell(9)))
-//                            .sessionType(getString(row.getCell(10)).startsWith("Buổi thường") || getString(row.getCell(19)).isBlank() ? null : getString(row.getCell(10)))
-//                            .surcharge(getString(row.getCell(11)).startsWith("Không có") || getString(row.getCell(19)).isBlank() ? null : getString(row.getCell(11)))
-//                            .totalSurcharge(getString(row.getCell(12)).startsWith("0") || getString(row.getCell(19)).isBlank() ? null : toBigDecimal(row.getCell(12)))
-//                            .shiftEmployee(getString(row.getCell(13)))
-//                            .performingEmployee(getString(row.getCell(14)))
-//                            .employeeSalary(toBigDecimal(row.getCell(15)))
-//                            .status(getString(row.getCell(16)).startsWith("Hoàn thành") || getString(row.getCell(19)).isBlank() ? null : getString(row.getCell(16)))
-//                            .rating(getString(row.getCell(17)).startsWith("Chưa đánh giá") || getString(row.getCell(19)).isBlank() ? null : Double.valueOf(getString(row.getCell(17))))
-//                            .reviewContent(getString(row.getCell(18)).startsWith("Chưa có") || getString(row.getCell(19)).isBlank() ? null : getString(row.getCell(18)))
-//                            .note(getString(row.getCell(19)).startsWith("Chưa có") || getString(row.getCell(19)).isBlank() ? null : getString(row.getCell(19)))
-//                            .build();
-//
-//                    repository.save(record);
-//                    success++;
-//
-//                } catch (Exception e) {
-//                    failed++;
-//                    log.warn("Row {} failed: {}", i, e.getMessage());
-//                }
-//            }
-//
-//            log.info("IMPORT SERVICE RECORD: Success = {}, Failed = {}", success, failed);
-//
-//        } catch (Exception e) {
-//            throw new RuntimeException("Failed to import service record Excel", e);
-//        }
-//    }
+    public void importFromExcelTestChange(MultipartFile file) {
+        int success = 0;
+        int failed = 0;
 
-    public void importFromExcel2(MultipartFile file) {
+        try (InputStream is = file.getInputStream()) {
+            Workbook workbook = WorkbookFactory.create(is);
+            Sheet sheet = workbook.getSheetAt(0);
+
+            // Map chuẩn hóa cho Region, ServiceType, AppliedCard
+            Map<String, Region> regionMap = regionRepository.findAll().stream()
+                    .collect(Collectors.toMap(r -> r.getShop_name().trim().toLowerCase(), Function.identity()));
+
+            Map<String, AppliedCard> appliedCardMap = appliedCardRepository.findAll().stream()
+                    .collect(Collectors.toMap(c -> c.getCard_name().trim().toLowerCase(), Function.identity()));
+
+            for (int i = 2; i <= sheet.getLastRowNum(); i++) {
+                Row row = sheet.getRow(i);
+                if (row == null || isRowEmpty(row)) {
+                    log.info("Stopped at row {} (blank)", i);
+                    break;
+                }
+
+                try {
+                    String dateStr = getString(row.getCell(3));
+                    LocalDateTime bookingDate = LocalDateTime.parse(dateStr, DateTimeFormatter.ofPattern("HH:mm dd/MM/yyyy"));
+
+                    String key = getString(row.getCell(4)).trim().toLowerCase();
+                    Region facility = regionMap.get(key);
+
+                    ServiceType serviceType = null;
+                    String allComboString = getString(row.getCell(7)).trim().replaceAll("\\s+", " ");
+                    String originalString;
+                    int semicolonIndex = allComboString.indexOf(";");
+                    if (semicolonIndex != -1) {
+                        originalString = allComboString.substring(0, semicolonIndex);
+                    } else {
+                        originalString = allComboString;  // fallback nếu không có dấu ;
+//                        log.warn("Row {}: Semicolon not found in '{}'", i, allComboString);
+                    }
+                    String perfectString = cleanTailNumber(originalString);
+
+                    if (perfectString.endsWith("))")) {
+                        perfectString = perfectString.substring(0, perfectString.length() - 1);
+                    } else if (perfectString.endsWith(" )")) {
+                        int open = perfectString.lastIndexOf("(");
+                        int close = perfectString.lastIndexOf(")");
+                        if (open != -1 && close != -1 && close > open) {
+                            String tag = perfectString.substring(open + 1, close).trim();  // Cắt rồi trim
+                            System.out.println(tag);  // "buổi lẻ"
+                        }
+                    }
+
+                    serviceType = getServiceType(perfectString);
+
+                    String key3 = getString(row.getCell(8)).trim().toLowerCase();
+                    AppliedCard appliedCard = appliedCardMap.get(key3);
+
+                    ServiceRecord record = ServiceRecord.builder()
+                            .recordId(Integer.parseInt(getString(row.getCell(1)).substring(1)))
+                            .orderId(Integer.parseInt(getString(row.getCell(2)).substring(1)))
+                            .bookingDate(bookingDate)
+                            .facility(facility)
+                            .customerName(getString(row.getCell(5)))
+                            .phoneNumber(getString(row.getCell(6)))
+                            .baseService(serviceType)
+                            .serviceName(allComboString)
+                            .appliedCard(appliedCard)
+                            .sessionPrice(toBigDecimal(row.getCell(9)))
+                            .sessionType(getString(row.getCell(10)).startsWith("Buổi thường") || getString(row.getCell(19)).isBlank() ? null : getString(row.getCell(10)))
+                            .surcharge(getString(row.getCell(11)).startsWith("Không có") || getString(row.getCell(19)).isBlank() ? null : getString(row.getCell(11)))
+                            .totalSurcharge(getString(row.getCell(12)).startsWith("0") || getString(row.getCell(19)).isBlank() ? null : toBigDecimal(row.getCell(12)))
+                            .shiftEmployee(getString(row.getCell(13)))
+                            .performingEmployee(getString(row.getCell(14)))
+                            .employeeSalary(toBigDecimal(row.getCell(15)))
+                            .status(getString(row.getCell(16)).startsWith("Hoàn thành") || getString(row.getCell(19)).isBlank() ? null : getString(row.getCell(16)))
+                            .rating(getString(row.getCell(17)).startsWith("Chưa đánh giá") || getString(row.getCell(19)).isBlank() ? null : Double.valueOf(getString(row.getCell(17))))
+                            .reviewContent(getString(row.getCell(18)).startsWith("Chưa có") || getString(row.getCell(19)).isBlank() ? null : getString(row.getCell(18)))
+                            .note(getString(row.getCell(19)).startsWith("Chưa có") || getString(row.getCell(19)).isBlank() ? null : getString(row.getCell(19)))
+                            .build();
+
+                    repository.save(record);
+                    success++;
+
+                } catch (Exception e) {
+                    failed++;
+                    log.warn("Row {} failed: {}", i, e.getMessage());
+                }
+            }
+
+            log.info("IMPORT SERVICE RECORD: Success = {}, Failed = {}", success, failed);
+
+        } catch (Exception e) {
+            throw new RuntimeException("Failed to import service record Excel", e);
+        }
+    }
+
+    private ServiceType getServiceType(String perfectString) {
+        int cutString = Math.round((float) perfectString.length() / 3);
+        ServiceType serviceType;
+        if (perfectString.startsWith(perfectString.substring(0, cutString)) && perfectString.endsWith("lẻ)")) {
+            String startString = perfectString.substring(0, cutString);
+            serviceType = serviceTypeRepository.findByServiceName(startString + "%", "%lẻ)");
+        } else if (perfectString.startsWith(perfectString.substring(0, cutString)) && perfectString.endsWith("ard)")) {
+            String startString = perfectString.substring(0, cutString);
+            serviceType = serviceTypeRepository.findByServiceName(startString + "%", "%ard)");
+        } else if (perfectString.startsWith(perfectString.substring(0, cutString)) && perfectString.endsWith("ĐẦU)")) {
+            String startString = perfectString.substring(0, cutString);
+            serviceType = serviceTypeRepository.findByServiceName(startString + "%", "%ĐẦU)");
+        } else if (perfectString.toUpperCase().startsWith("QT KÈM THẺ TIỀN FOXIE")) {
+            serviceType = serviceTypeRepository.findByCode("QT 1.1");
+        } else if (perfectString.startsWith("DV 1: AQUA PEEL CLEANSE")) {
+            serviceType = serviceTypeRepository.findByCode("DV 1.1"); // service_code = 'DV 1.1'
+        } else if (perfectString.contains("COMBO CS 11: BURNT SKIN SOS")) {
+            serviceType = serviceTypeRepository.findByCode("CBCS 11.2");
+        } else if (perfectString.contains("COMBO CS 3: PRESERVE YOUTH") && perfectString.toLowerCase().contains("giá thẻ")) {
+            serviceType = serviceTypeRepository.findByCode("CBCS 3.2");
+        } else if (perfectString.contains("DV 4: LUMIGLOW CLEANSE") && perfectString.contains("buổi lẻ")) {
+            serviceType = serviceTypeRepository.findByCode("DV 4.1");
+        } else if (perfectString.contains("COMBO CS 3: PRESERVE YOUTH") && perfectString.contains("buổi lẻ")) {
+            serviceType = serviceTypeRepository.findByCode("CBCS 3.1");
+        } else if (perfectString.contains("CT 2: ADDED LUMIGLOW")) {
+            serviceType = perfectString.toLowerCase().contains("giá") ? serviceTypeRepository.findByCode("CT 2.2") : serviceTypeRepository.findByCode("CT 2.1");
+        } else if (perfectString.contains("COMBO 1: DEEP CLEANSE CRYO") && perfectString.toLowerCase().contains("giá")) {
+            serviceType = serviceTypeRepository.findByCode("CB 1.2");
+        } else if (perfectString.contains("COMBO CS 1: MESO TẾ BÀO GỐC DNA CÁ HỒI") && perfectString.toLowerCase().contains("giá")) {
+            serviceType = serviceTypeRepository.findByCode("CBCS 1.2");
+        } else if (perfectString.contains("DV 2: DEEP CLEANSE") && perfectString.toLowerCase().contains("giá")) {
+            serviceType = serviceTypeRepository.findByCode("DV 2.2");
+        } else if (perfectString.contains("COMBO CS 1: MESO TẾ BÀO GỐC DNA CÁ HỒI") && perfectString.contains("buổi lẻ")) {
+            serviceType = serviceTypeRepository.findByCode("CBCS 1.1");
+        } else if (perfectString.contains("DV 3: CRYO CLEANSE") && perfectString.toLowerCase().contains("giá")) {
+            serviceType = serviceTypeRepository.findByCode("DV 3.3");
+        } else if (perfectString.contains("COMBO 6") && perfectString.toLowerCase().contains("giá")) {
+            serviceType = serviceTypeRepository.findByCode("CB 6.2");
+        } else if (perfectString.contains("DV 1: AQUA PEEL CLEANSE") && perfectString.contains("buổi lẻ")) {
+            serviceType = serviceTypeRepository.findByCode("DV 1.1");
+        } else if (perfectString.contains("DV 1: AQUA PEEL CLEANSE") && perfectString.toLowerCase().contains("giá")) {
+            serviceType = serviceTypeRepository.findByCode("DV 1.3");
+        } else if (perfectString.contains("DV 5: GYMMING CLEANSE") && perfectString.toLowerCase().contains("giá")) {
+            serviceType = serviceTypeRepository.findByCode("DV 5.2");
+        } else if (perfectString.contains("DV 6: EYE-REVIVE CLEANSE") && perfectString.toLowerCase().contains("giá")) {
+            serviceType = serviceTypeRepository.findByCode("DV 6.2");
+        } else if (perfectString.contains("COMBO 1: DEEP CLEANSE CRYO") && perfectString.contains("buổi lẻ")) {
+            serviceType = serviceTypeRepository.findByCode("CB 1.1");
+        } else if (perfectString.contains("DV 4: LUMIGLOW CLEANSE") && perfectString.contains("buổi lẻ")) {
+            serviceType = serviceTypeRepository.findByCode("DV 4.1");
+        } else if (perfectString.contains("DV 5: GYMMING CLEANSE") && perfectString.contains("buổi lẻ")) {
+            serviceType = serviceTypeRepository.findByCode("DV 5.1");
+        } else if (perfectString.contains("DV 6: EYE-REVIVE CLEANSE") && perfectString.contains("buổi lẻ")) {
+            serviceType = serviceTypeRepository.findByCode("DV 6.1");
+        } else if (perfectString.contains("TRẢI NGHIỆM LẦN ĐẦU") && perfectString.contains("COMBO 9")) {
+            serviceType = serviceTypeRepository.findByCode("CB9.3");
+        } else if (perfectString.contains("KHUYẾN MÃI TRẢI NGHIỆM LẦN ĐẦU") && perfectString.contains("COMBO 4")) {
+            serviceType = serviceTypeRepository.findByCode("CB 4.3");
+        } else if (perfectString.contains("SỮA RỬA MẶT LÀM DỊU ELRAVIE")) {
+            serviceType = serviceTypeRepository.findByCode("MP000037");
+        } else if (perfectString.contains("BỘ SẢN PHẨM DƯỠNG DA FULL SIZE ELRAVIE")) {
+            serviceType = serviceTypeRepository.findByCode("MP000024");
+        } else if (perfectString.contains("KEM DƯỠNG MẮT ELRAVIE")) {
+            serviceType = serviceTypeRepository.findByCode("MP000014");
+        } else if (perfectString.startsWith("CT 6: ADDED GOODBYE ACNE")) {
+            serviceType = serviceTypeRepository.findByCode("CT 6.1");
+        } else if (perfectString.startsWith("COMBO CS 3: PRESERVE YOUTH")) {
+            serviceType = serviceTypeRepository.findByCode("CBCS 3.1");
+        } else if (perfectString.startsWith("COMBO CS 9: PHỤC HỒI NÂNG CAO PDRN")) {
+            serviceType = serviceTypeRepository.findByCode("CBCS 9.1");
+        } else if (perfectString.startsWith("CT 4: ADDED EYE-REVIVE - CỘNG THÊM CHĂM SÓC MẮT")) {
+            serviceType = serviceTypeRepository.findByCode("CT 4.1");
+        } else if (perfectString.startsWith("CT 3: ADDED GYMMING - CỘNG THÊM SĂN CHẮC DA")) {
+            serviceType = serviceTypeRepository.findByCode("CT 3.1");
+        } else if (perfectString.startsWith("COMBO CS 1: MESO TẾ BÀO GỐC DNA CÁ HỒI (Giá Foxie Member Card)")) {
+            serviceType = serviceTypeRepository.findByCode("CBCS 1.1");
+        } else if (perfectString.startsWith("COMBO 6 : LUMIGLOW CLEANSE CRYO GYMMING (Giá Foxie Member Card)")) {
+            serviceType = serviceTypeRepository.findByCode("CB 6.1");
+        } else {
+            serviceType = serviceTypeRepository.findByName(perfectString);
+        }
+        return serviceType;
+    }
+
+    public void importFromExcelOrigin(MultipartFile file) {
         int success = 0;
         int failed = 0;
 
@@ -388,4 +486,7 @@ public class ServiceRecordService {
         }).collect(Collectors.toList());
     }
 
+    public String cleanTailNumber(String s) {
+        return s.replaceAll("\\s*\\(\\d+\\)$", "");
+    }
 }

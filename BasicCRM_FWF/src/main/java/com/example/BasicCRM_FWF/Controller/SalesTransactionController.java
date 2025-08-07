@@ -20,8 +20,8 @@ public class SalesTransactionController {
 
     private final SalesTransactionService service;
 
-    @PostMapping("/upload2")
-    public ResponseEntity<String> upload2(@RequestParam("file") MultipartFile file) throws IOException {
+    @PostMapping("/upload-temp")
+    public ResponseEntity<String> uploadTemp(@RequestParam("file") MultipartFile file) throws IOException {
         service.importFromExcelTestChange(file);
         return ResponseEntity.ok("Upload successful" + file.getOriginalFilename());
     }

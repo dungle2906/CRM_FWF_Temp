@@ -19,9 +19,16 @@ public class ServiceRecordController {
 
     private final ServiceRecordService service;
 
+
+//    @PostMapping("/upload-temp")
+//    public ResponseEntity<String> uploadTemp(@RequestParam("file") MultipartFile file) {
+//        service.importFromExcelTestChange(file);
+//        return ResponseEntity.ok("Upload completed. Check logs for details." + file.getOriginalFilename());
+//    }
+
     @PostMapping("/upload")
     public ResponseEntity<String> upload(@RequestParam("file") MultipartFile file) {
-        service.importFromExcel2(file);
+        service.importFromExcelTestChange(file);
         return ResponseEntity.ok("Upload completed. Check logs for details." + file.getOriginalFilename());
     }
 
