@@ -22,4 +22,14 @@ public interface ServiceTypeRepository extends JpaRepository<ServiceType, Intege
         SELECT * FROM service_type WHERE service_code LIKE 'QT 1.1'
     """, nativeQuery = true)
     ServiceType findServiceTemp();
+
+    @Query(value = """
+        SELECT * FROM service_type WHERE service_code LIKE 'DV 1.1'
+    """, nativeQuery = true)
+    ServiceType findServiceTemp2();
+
+    @Query(value = """
+        SELECT * FROM service_type WHERE service_code LIKE :name
+    """, nativeQuery = true)
+    ServiceType findByCode(@Param("name") String name);
 }

@@ -10,12 +10,12 @@ import java.math.BigDecimal;
 import java.time.LocalDateTime;
 
 @Entity
-@Table(name = "service_record")
+@Table(name = "service_record_temp")
 @Data
 @AllArgsConstructor
 @NoArgsConstructor
 @Builder
-public class ServiceRecord {
+public class ServiceRecordTemp {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -34,9 +34,7 @@ public class ServiceRecord {
 
     @ManyToOne
     @JoinColumn(name = "base_service_id")
-    private ServiceType baseService;
-
-    private String serviceName;
+    private ServiceTypeTemp baseService;
 
     @ManyToOne
     @JoinColumn(name = "applied_card_id")
