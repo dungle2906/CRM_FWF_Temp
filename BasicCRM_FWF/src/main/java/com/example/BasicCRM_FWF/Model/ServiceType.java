@@ -6,6 +6,8 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
+import java.math.BigDecimal;
+
 @Entity
 @Table(name = "service_type")
 @Data
@@ -21,7 +23,7 @@ public class ServiceType {
 
     private String service_name;
 
-    private String price;
+    private BigDecimal price;
 
     private String category;
 }

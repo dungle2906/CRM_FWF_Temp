@@ -20,11 +20,11 @@ public class SalesTransactionController {
 
     private final SalesTransactionService service;
 
-    @PostMapping("/upload-temp")
-    public ResponseEntity<String> uploadTemp(@RequestParam("file") MultipartFile file) throws IOException {
-        service.importFromExcelTestChange(file);
-        return ResponseEntity.ok("Upload successful" + file.getOriginalFilename());
-    }
+//    @PostMapping("/upload-temp")
+//    public ResponseEntity<String> uploadTemp(@RequestParam("file") MultipartFile file) throws IOException {
+//        service.importFromExcelTestChange(file);
+//        return ResponseEntity.ok("Upload successful" + file.getOriginalFilename());
+//    }
 
     @PostMapping("/upload")
     public ResponseEntity<String> upload(@RequestParam("file") MultipartFile file) throws IOException {
@@ -92,4 +92,26 @@ public class SalesTransactionController {
     public ResponseEntity<List<RegionPaymentDTO>> getPaymentByRegion(@RequestBody CustomerReportRequest request) {
         return ResponseEntity.ok(service.getPaymentByRegion(request));
     }
+
+    @PostMapping("/region-order-breakdown")
+    public ResponseEntity<List<RegionOrderBreakdownDTO>> getRegionOrderBreakdown(@RequestBody CustomerReportRequest request) {
+        return ResponseEntity.ok(service.getRegionOrderBreakdown(request));
+    }
+
+    @PostMapping("/region-order-breakdown-table")
+    public ResponseEntity<List<RegionOrderBreakdownTableDTO>> getRegionOrderBreakdownTable(@RequestBody CustomerReportRequest request) {
+        return ResponseEntity.ok(service.getRegionOrderBreakdownTable(request));
+    }
+
+    @PostMapping("/overall-order-summary")
+    public ResponseEntity<OverallOrderSummaryDTO> getOverallOrderSummary(@RequestBody CustomerReportRequest request) {
+        return ResponseEntity.ok(service.getOverallOrderSummary(request));
+    }
+
+    @PostMapping("/overall-summary")
+    public ResponseEntity<OverallSummaryDTO> getOverallSummary(@RequestBody CustomerReportRequest request) {
+        return ResponseEntity.ok(service.getOverallSummary(request));
+    }
+
+
 }

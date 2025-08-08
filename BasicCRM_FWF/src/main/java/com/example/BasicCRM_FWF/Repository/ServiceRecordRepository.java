@@ -29,7 +29,7 @@ public interface ServiceRecordRepository extends JpaRepository<ServiceRecord, Lo
             " ELSE 'Khác' END AS type, " +
             "COUNT(*) AS total " +
             "FROM service_record sr " +
-            "JOIN service_type st ON sr.base_service_id = st.id " +
+            "JOIN service_type_temp st ON sr.base_service_id = st.id " +
             "WHERE booking_date BETWEEN :start AND :end " +
             "GROUP BY DATE(booking_date), type " +
             "ORDER BY DATE(booking_date), type", nativeQuery = true)
@@ -37,7 +37,7 @@ public interface ServiceRecordRepository extends JpaRepository<ServiceRecord, Lo
                                            @Param("end") LocalDateTime end);
 
     @Query(value = "SELECT COUNT(*) FROM service_record sr \n" +
-            "JOIN service_type st ON sr.base_service_id = st.id \n" +
+            "JOIN service_type_temp st ON sr.base_service_id = st.id \n" +
             "WHERE sr.booking_date BETWEEN :start AND :end \n" +
             "AND st.service_name LIKE :prefix%", nativeQuery = true)
     long countByServiceCodePrefix(@Param("prefix") String prefix,
@@ -53,7 +53,7 @@ public interface ServiceRecordRepository extends JpaRepository<ServiceRecord, Lo
             " ELSE 'Khác' END AS type, " +
             "COUNT(*) AS total " +
             "FROM service_record sr " +
-            "JOIN service_type st ON sr.base_service_id = st.id " +
+            "JOIN service_type_temp st ON sr.base_service_id = st.id " +
             "JOIN region r ON sr.facility_id = r.id " +
             "WHERE sr.booking_date BETWEEN :start AND :end " +
             "GROUP BY r.region, type " +
@@ -70,7 +70,7 @@ public interface ServiceRecordRepository extends JpaRepository<ServiceRecord, Lo
             " ELSE 'Khác' END AS type, " +
             "COUNT(*) AS total " +
             "FROM service_record sr " +
-            "JOIN service_type st ON sr.base_service_id = st.id " +
+            "JOIN service_type_temp st ON sr.base_service_id = st.id " +
             "JOIN region r ON sr.facility_id = r.id " +
             "WHERE sr.booking_date BETWEEN :start AND :end " +
             "GROUP BY r.shop_name, type " +
@@ -81,7 +81,7 @@ public interface ServiceRecordRepository extends JpaRepository<ServiceRecord, Lo
     // Query top 10 service names by count within date range
     @Query(value = "SELECT st.service_name, COUNT(*) AS cnt " +
             "FROM service_record sr " +
-            "JOIN service_type st ON sr.base_service_id = st.id " +
+            "JOIN service_type_temp st ON sr.base_service_id = st.id " +
             "WHERE sr.booking_date BETWEEN :start AND :end " +
             "GROUP BY st.service_name " +
             "ORDER BY cnt DESC " +
@@ -91,7 +91,7 @@ public interface ServiceRecordRepository extends JpaRepository<ServiceRecord, Lo
 
     @Query(value = "SELECT st.service_name, SUM(sr.session_price) AS totalRevenue " +
             "FROM service_record sr " +
-            "JOIN service_type st ON sr.base_service_id = st.id " +
+            "JOIN service_type_temp st ON sr.base_service_id = st.id " +
             "WHERE sr.booking_date BETWEEN :start AND :end " +
             "GROUP BY st.service_name " +
             "ORDER BY totalRevenue DESC " +
@@ -102,7 +102,7 @@ public interface ServiceRecordRepository extends JpaRepository<ServiceRecord, Lo
     @Query(value = """
         SELECT st.service_name, SUM(sr.session_price) AS totalRevenue
         FROM service_record sr
-        JOIN service_type st ON sr.base_service_id = st.id
+        JOIN service_type_temp st ON sr.base_service_id = st.id
         WHERE sr.booking_date BETWEEN :start AND :end
         GROUP BY st.service_name
         HAVING totalRevenue > 10000
@@ -114,7 +114,7 @@ public interface ServiceRecordRepository extends JpaRepository<ServiceRecord, Lo
     @Query(value = """
         SELECT st.service_name, COUNT(*) AS cnt
         FROM service_record sr
-        JOIN service_type st ON sr.base_service_id = st.id
+        JOIN service_type_temp st ON sr.base_service_id = st.id
         WHERE sr.booking_date BETWEEN :start AND :end
         GROUP BY st.service_name
         ORDER BY cnt ASC
@@ -135,7 +135,7 @@ public interface ServiceRecordRepository extends JpaRepository<ServiceRecord, Lo
             COUNT(*) AS currentCount,
             SUM(sr.session_price) AS currentRevenue
         FROM service_record sr
-        JOIN service_type st ON sr.base_service_id = st.id
+        JOIN service_type_temp st ON sr.base_service_id = st.id
         WHERE sr.booking_date BETWEEN :start AND :end
         GROUP BY st.service_name, type
         ORDER BY currentCount DESC
@@ -149,7 +149,7 @@ public interface ServiceRecordRepository extends JpaRepository<ServiceRecord, Lo
             COUNT(*) AS previousCount,
             SUM(sr.session_price) AS previousRevenue
         FROM service_record sr
-        JOIN service_type st ON sr.base_service_id = st.id
+        JOIN service_type_temp st ON sr.base_service_id = st.id
         WHERE sr.booking_date BETWEEN :prevStart AND :prevEnd
         GROUP BY st.service_name
     """, nativeQuery = true)

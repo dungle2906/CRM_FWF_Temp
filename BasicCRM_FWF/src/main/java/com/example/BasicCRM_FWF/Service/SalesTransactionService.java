@@ -2,14 +2,11 @@ package com.example.BasicCRM_FWF.Service;
 
 import com.example.BasicCRM_FWF.DTORequest.CustomerReportRequest;
 import com.example.BasicCRM_FWF.DTOResponse.*;
-import com.example.BasicCRM_FWF.Helper.Helper;
 import com.example.BasicCRM_FWF.Model.Region;
 import com.example.BasicCRM_FWF.Model.SalesTransaction;
-import com.example.BasicCRM_FWF.Model.SalesTransactionTemp;
 import com.example.BasicCRM_FWF.Model.ServiceType;
 import com.example.BasicCRM_FWF.Repository.RegionRepository;
 import com.example.BasicCRM_FWF.Repository.SalesTransactionRepository;
-import com.example.BasicCRM_FWF.Repository.SalesTransactionTempRepository;
 import com.example.BasicCRM_FWF.Repository.ServiceTypeRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -21,6 +18,7 @@ import org.springframework.web.multipart.MultipartFile;
 import java.io.IOException;
 import java.io.InputStream;
 import java.math.BigDecimal;
+import java.math.BigInteger;
 import java.math.RoundingMode;
 import java.sql.Date;
 import java.time.Duration;
@@ -40,94 +38,7 @@ public class SalesTransactionService {
 
     private final SalesTransactionRepository repository;
     private final RegionRepository regionRepository;
-    private final SalesTransactionTempRepository salesTransaction2Repository;
     private final ServiceTypeRepository serviceTypeRepository;
-
-    public void importFromExcelTestChange(MultipartFile file) {
-        int successCount = 0;
-        int failCount = 0;
-        int failed = 0;
-
-        try (InputStream is = file.getInputStream()) {
-            Workbook workbook = WorkbookFactory.create(is);
-            Sheet sheet = workbook.getSheetAt(0);
-
-            for (int i = 2; i <= sheet.getLastRowNum(); i++) {
-                Row row = sheet.getRow(i);
-
-                if (row == null || isRowEmpty(row)) {
-                    log.info("Stopped at row {} (blank)", i);
-                    break;
-                }
-
-                try {
-
-                    ServiceType serviceType = null;
-                    String allComboString = getString(row.getCell(26)).trim().replaceAll("\\s+", " ");
-
-                    String originalString;
-                    int semicolonIndex = allComboString.indexOf(";");
-                    if (semicolonIndex != -1) {
-                        originalString = allComboString.substring(0, semicolonIndex);
-                    } else {
-                        originalString = allComboString;  // fallback nếu không có dấu ;
-                        log.warn("Row {}: Semicolon not found in '{}'", i, allComboString);
-                    }
-
-                    if (allComboString == null || allComboString.isEmpty()) {
-                        log.warn("Row {} skipped: allComboString is empty", i);
-                        failCount++;
-                        continue;
-                    }
-
-                    String perfectString = cleanTailNumber(originalString);
-
-                    if (perfectString.endsWith("))")) {
-                        perfectString = perfectString.substring(0, perfectString.length() - 1);
-                    } else if (perfectString.endsWith(" )")) {
-                        int open = perfectString.lastIndexOf("(");
-                        int close = perfectString.lastIndexOf(")");
-                        if (open != -1 && close != -1 && close > open) {
-                            String tag = perfectString.substring(open + 1, close).trim();  // Cắt rồi trim
-                            System.out.println(tag);  // "buổi lẻ"
-                        }
-                    }
-
-                    if (perfectString.startsWith(perfectString.substring(0, 30)) && perfectString.endsWith("lẻ)")) {
-                        String startString = perfectString.substring(0, 30);
-                        serviceType = serviceTypeRepository.findByServiceName(startString + "%", "%lẻ)");
-                    } else if (perfectString.startsWith(perfectString.substring(0, 30)) && perfectString.endsWith("ard)")) {
-                        String startString = perfectString.substring(0, 30);
-                        serviceType = serviceTypeRepository.findByServiceName(startString + "%", "%ard)");
-                    } else if (perfectString.startsWith(perfectString.substring(0, 30)) && perfectString.endsWith("ĐẦU)")) {
-                        String startString = perfectString.substring(0, 30);
-                        serviceType = serviceTypeRepository.findByServiceName(startString + "%", "%ĐẦU)");
-                    } else if (perfectString.toUpperCase().startsWith("QT KÈM THẺ TIỀN FO")) {
-                        serviceType = serviceTypeRepository.findServiceTemp();
-                    } else if (perfectString.startsWith(perfectString.substring(0, 30)) && perfectString.endsWith("(MUA 2 TẶNG 1)")) {
-                        serviceType = serviceTypeRepository.findByName(perfectString);
-                    }
-
-                    SalesTransactionTemp st = SalesTransactionTemp.builder()
-                            .details(perfectString)
-                            .serviceType(serviceType)
-                            .build();
-
-                    salesTransaction2Repository.save(st);
-                    successCount++;
-
-                } catch (Exception e) {
-                    log.error("Row {} failed: {}", i, e.getMessage());
-                    failCount++;
-                }
-            }
-
-            log.info("IMPORT COMPLETE: Success = {}, Failed = {}", successCount, failCount);
-
-        } catch (Exception e) {
-            throw new RuntimeException("Failed to import Excel", e);
-        }
-    }
 
     public void importFromExcel(MultipartFile file) {
         int successCount = 0;
@@ -697,5 +608,175 @@ public class SalesTransactionService {
                 (BigDecimal) row[2],
                 (BigDecimal) row[3]
         )).collect(Collectors.toList());
+    }
+
+    public List<RegionOrderBreakdownDTO> getRegionOrderBreakdown(CustomerReportRequest request) {
+        List<Object[]> raw = repository.fetchRegionOrderBreakdown(
+                request.getFromDate(), request.getToDate());
+        List<RegionOrderBreakdownDTO> result = new ArrayList<>();
+
+        for (Object[] row : raw) {
+            String region = (String) row[0];
+            Long total = ((Number) row[1]).longValue();
+            Long service = ((Number) row[2]).longValue();
+            Long foxie = ((Number) row[3]).longValue();
+            Long product = ((Number) row[4]).longValue();
+            Long card = ((Number) row[5]).longValue();
+
+            result.add(new RegionOrderBreakdownDTO(region, total, service, foxie, product, card));
+        }
+        return result;
+    }
+
+    public List<RegionOrderBreakdownTableDTO> getRegionOrderBreakdownTable(CustomerReportRequest request) {
+        LocalDateTime start = request.getFromDate();
+        LocalDateTime end = request.getToDate();
+
+        List<Object[]> current = repository.fetchRegionOrderBreakdown(start, end);
+
+        // Previous range
+        long days = Duration.between(start, end).toDays();
+        LocalDateTime prevStart = start.minusDays(days + 1);
+        LocalDateTime prevEnd = start.minusSeconds(1);
+        List<Object[]> previous = repository.fetchRegionOrderBreakdown(prevStart, prevEnd);
+
+        // Map previous by shop name for lookup
+        Map<String, Object[]> prevMap = previous.stream().collect(Collectors.toMap(
+                row -> (String) row[0], row -> row
+        ));
+
+        List<RegionOrderBreakdownTableDTO> result = new ArrayList<>();
+
+        for (Object[] row : current) {
+            String shopName = (String) row[0];
+            Long total = ((Number) row[1]).longValue();
+            Long service = ((Number) row[2]).longValue();
+            Long foxie = ((Number) row[3]).longValue();
+            Long product = ((Number) row[4]).longValue();
+            Long card = ((Number) row[5]).longValue();
+
+            Object[] prev = prevMap.get(shopName);
+            Long prevTotal = prev != null ? ((Number) prev[1]).longValue() : 0L;
+            Long prevService = prev != null ? ((Number) prev[2]).longValue() : 0L;
+            Long prevFoxie = prev != null ? ((Number) prev[3]).longValue() : 0L;
+            Long prevProduct = prev != null ? ((Number) prev[4]).longValue() : 0L;
+            Long prevCard = prev != null ? ((Number) prev[5]).longValue() : 0L;
+
+            RegionOrderBreakdownTableDTO dto = new RegionOrderBreakdownTableDTO();
+            dto.setShopName(shopName);
+            dto.setTotalOrders(total);
+            dto.setServiceOrders(service);
+            dto.setFoxieCardOrders(foxie);
+            dto.setProductOrders(product);
+            dto.setCardPurchaseOrders(card);
+
+            dto.setDeltaTotalOrders(total - prevTotal);
+            dto.setDeltaServiceOrders(service - prevService);
+            dto.setDeltaFoxieCardOrders(foxie - prevFoxie);
+            dto.setDeltaProductOrders(product - prevProduct);
+            dto.setDeltaCardPurchaseOrders(card - prevCard);
+
+            result.add(dto);
+        }
+        return result;
+    }
+
+    public OverallOrderSummaryDTO getOverallOrderSummary(CustomerReportRequest request) {
+        LocalDateTime start = request.getFromDate();
+        LocalDateTime end = request.getToDate();
+
+        List<Object[]> currentList = repository.fetchOverallOrderSummary(start, end);
+        List<Object[]> previousList = repository.fetchOverallOrderSummary(
+                start.minusDays(Duration.between(start, end).toDays() + 1),
+                start.minusSeconds(1)
+        );
+
+        Object[] current = currentList.get(0);
+        Object[] previous = previousList.get(0);
+
+        OverallOrderSummaryDTO dto = new OverallOrderSummaryDTO();
+
+        Long total = ((Number) current[0]).longValue();
+        Long service = ((Number) current[1]).longValue();
+        Long foxie = ((Number) current[2]).longValue();
+        Long product = ((Number) current[3]).longValue();
+        Long card = ((Number) current[4]).longValue();
+
+        Long prevTotal = ((Number) previous[0]).longValue();
+        Long prevService = ((Number) previous[1]).longValue();
+        Long prevFoxie = ((Number) previous[2]).longValue();
+        Long prevProduct = ((Number) previous[3]).longValue();
+        Long prevCard = ((Number) previous[4]).longValue();
+
+        dto.setTotalOrders(total);
+        dto.setServiceOrders(service);
+        dto.setFoxieCardOrders(foxie);
+        dto.setProductOrders(product);
+        dto.setCardPurchaseOrders(card);
+
+        dto.setDeltaTotalOrders(total - prevTotal);
+        dto.setDeltaServiceOrders(service - prevService);
+        dto.setDeltaFoxieCardOrders(foxie - prevFoxie);
+        dto.setDeltaProductOrders(product - prevProduct);
+        dto.setDeltaCardPurchaseOrders(card - prevCard);
+
+        return dto;
+    }
+
+    public OverallSummaryDTO getOverallSummary(CustomerReportRequest request) {
+        LocalDateTime start = request.getFromDate();
+        LocalDateTime end = request.getToDate();
+
+        List<Object[]> currentList = repository.fetchOverallRevenueSummary(start, end);
+        List<Object[]> previousList = repository.fetchOverallRevenueSummary(
+                start.minusDays(Duration.between(start, end).toDays() + 1),
+                start.minusSeconds(1)
+        );
+
+        Object[] current = currentList.get(0);
+        Object[] previous = previousList.get(0);
+
+        OverallSummaryDTO dto = new OverallSummaryDTO();
+
+        BigDecimal total = (BigDecimal) current[0];
+        BigDecimal service = (BigDecimal) current[1];
+        BigDecimal foxie = (BigDecimal) current[2];
+        BigDecimal product = (BigDecimal) current[3];
+        BigDecimal card = (BigDecimal) current[4];
+
+        BigDecimal prevTotal = (BigDecimal) previous[0];
+        BigDecimal prevService = (BigDecimal) previous[1];
+        BigDecimal prevFoxie = (BigDecimal) previous[2];
+        BigDecimal prevProduct = (BigDecimal) previous[3];
+        BigDecimal prevCard = (BigDecimal) previous[4];
+
+        dto.setTotalRevenue(total);
+        dto.setServiceRevenue(service);
+        dto.setFoxieCardRevenue(foxie);
+        dto.setProductRevenue(product);
+        dto.setCardPurchaseRevenue(card);
+
+        dto.setDeltaTotalRevenue(total.subtract(prevTotal));
+        dto.setDeltaServiceRevenue(service.subtract(prevService));
+        dto.setDeltaFoxieCardRevenue(foxie.subtract(prevFoxie));
+        dto.setDeltaProductRevenue(product.subtract(prevProduct));
+        dto.setDeltaCardPurchaseRevenue(card.subtract(prevCard));
+
+        dto.setPercentTotalRevenue(calculatePercentChange(prevTotal, total));
+        dto.setPercentServiceRevenue(calculatePercentChange(prevService, service));
+        dto.setPercentFoxieCardRevenue(calculatePercentChange(prevFoxie, foxie));
+        dto.setPercentProductRevenue(calculatePercentChange(prevProduct, product));
+        dto.setPercentCardPurchaseRevenue(calculatePercentChange(prevCard, card));
+
+        return dto;
+    }
+
+    private double calculatePercentChange(BigDecimal previous, BigDecimal current) {
+        if (previous.compareTo(BigDecimal.ZERO) == 0) {
+            return current.compareTo(BigDecimal.ZERO) == 0 ? 0 : 100.0;
+        }
+        return current.subtract(previous)
+                .divide(previous, 4, RoundingMode.HALF_UP)
+                .multiply(BigDecimal.valueOf(100)).doubleValue();
     }
 }
