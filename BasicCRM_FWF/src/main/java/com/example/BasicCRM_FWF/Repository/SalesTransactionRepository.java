@@ -161,4 +161,62 @@ public interface SalesTransactionRepository extends JpaRepository<SalesTransacti
             "GROUP BY st.facility.region")
     List<Object[]> findPaymentByRegion(LocalDateTime start, LocalDateTime end);
 
+
+    @Query(value = """
+        SELECT
+                r.shop_name AS shop_name,
+                COUNT(s.id) AS total_orders,
+                COUNT(CASE WHEN s.cash_transfer_credit > 0 THEN 1 END) AS service_orders,
+                COUNT(CASE WHEN s.prepaid_card > 0 THEN 1 END) AS foxie_card_orders,
+                COUNT(CASE\s
+                    WHEN st.service_code LIKE 'MD%' OR st.service_code LIKE 'MP%' THEN 1\s
+                END) AS product_orders,
+                COUNT(CASE\s
+                    WHEN st.category LIKE 'Foxie Member Card' OR st.service_name LIKE 'Foxie Card%' THEN 1
+                END) AS card_purchase_orders
+            FROM sales_transaction s
+            JOIN region r ON s.facility_id = r.id
+            JOIN service_type st ON s.service_type_id = st.id
+            WHERE s.order_date BETWEEN :start AND :end
+            GROUP BY r.shop_name
+            ORDER BY total_orders DESC
+            LIMIT 10
+    """, nativeQuery = true)
+    List<Object[]> fetchRegionOrderBreakdown(LocalDateTime start, LocalDateTime end);
+
+    @Query(value = """
+    SELECT
+        COUNT(s.id) AS total_orders,
+        COUNT(CASE WHEN s.cash_transfer_credit > 0 THEN 1 END) AS service_orders,
+        COUNT(CASE WHEN s.prepaid_card > 0 THEN 1 END) AS foxie_card_orders,
+        COUNT(CASE 
+            WHEN st.service_code LIKE 'MD%' OR st.service_code LIKE 'MP%' THEN 1 
+        END) AS product_orders,
+        COUNT(CASE 
+            WHEN st.category LIKE 'Foxie Member Card' OR st.service_name LIKE 'Foxie Card%' THEN 1
+        END) AS card_purchase_orders
+    FROM sales_transaction s
+    JOIN service_type st ON s.service_type_id = st.id
+    WHERE s.order_date BETWEEN :start AND :end
+""", nativeQuery = true)
+    List<Object[]> fetchOverallOrderSummary(@Param("start") LocalDateTime start,
+                                            @Param("end") LocalDateTime end);
+
+    @Query(value = """
+    SELECT
+        SUM(s.total_amount) AS total_revenue,
+        SUM(CASE WHEN s.cash_transfer_credit > 0 THEN s.total_amount ELSE 0 END) AS service_revenue,
+        SUM(CASE WHEN s.prepaid_card > 0 THEN s.total_amount ELSE 0 END) AS foxie_card_revenue,
+        SUM(CASE 
+            WHEN st.service_code LIKE 'MD%' OR st.service_code LIKE 'MP%' THEN s.total_amount ELSE 0
+        END) AS product_revenue,
+        SUM(CASE 
+            WHEN st.category LIKE 'Foxie Member Card' OR st.service_name LIKE 'Foxie Card%' THEN s.total_amount ELSE 0
+        END) AS card_purchase_revenue
+    FROM sales_transaction s
+    JOIN service_type st ON s.service_type_id = st.id
+    WHERE s.order_date BETWEEN :start AND :end
+""", nativeQuery = true)
+    List<Object[]> fetchOverallRevenueSummary(@Param("start") LocalDateTime start,
+                                              @Param("end") LocalDateTime end);
 }

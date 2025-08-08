@@ -33,102 +33,103 @@ public class ServiceRecordService {
     private final RegionRepository regionRepository;
     private final ServiceTypeRepository serviceTypeRepository;
     private final AppliedCardRepository appliedCardRepository;
+    private final ServiceTypeTempRepository serviceTypeTempRepository;
 
-    public void importFromExcelTestChange(MultipartFile file) {
-        int success = 0;
-        int failed = 0;
-
-        try (InputStream is = file.getInputStream()) {
-            Workbook workbook = WorkbookFactory.create(is);
-            Sheet sheet = workbook.getSheetAt(0);
-
-            // Map chuẩn hóa cho Region, ServiceType, AppliedCard
-            Map<String, Region> regionMap = regionRepository.findAll().stream()
-                    .collect(Collectors.toMap(r -> r.getShop_name().trim().toLowerCase(), Function.identity()));
-
-            Map<String, AppliedCard> appliedCardMap = appliedCardRepository.findAll().stream()
-                    .collect(Collectors.toMap(c -> c.getCard_name().trim().toLowerCase(), Function.identity()));
-
-            for (int i = 2; i <= sheet.getLastRowNum(); i++) {
-                Row row = sheet.getRow(i);
-                if (row == null || isRowEmpty(row)) {
-                    log.info("Stopped at row {} (blank)", i);
-                    break;
-                }
-
-                try {
-                    String dateStr = getString(row.getCell(3));
-                    LocalDateTime bookingDate = LocalDateTime.parse(dateStr, DateTimeFormatter.ofPattern("HH:mm dd/MM/yyyy"));
-
-                    String key = getString(row.getCell(4)).trim().toLowerCase();
-                    Region facility = regionMap.get(key);
-
-                    ServiceType serviceType = null;
-                    String allComboString = getString(row.getCell(7)).trim().replaceAll("\\s+", " ");
-                    String originalString;
-                    int semicolonIndex = allComboString.indexOf(";");
-                    if (semicolonIndex != -1) {
-                        originalString = allComboString.substring(0, semicolonIndex);
-                    } else {
-                        originalString = allComboString;  // fallback nếu không có dấu ;
+//    public void importFromExcelTestChange(MultipartFile file) {
+//        int success = 0;
+//        int failed = 0;
+//
+//        try (InputStream is = file.getInputStream()) {
+//            Workbook workbook = WorkbookFactory.create(is);
+//            Sheet sheet = workbook.getSheetAt(0);
+//
+//            // Map chuẩn hóa cho Region, ServiceType, AppliedCard
+//            Map<String, Region> regionMap = regionRepository.findAll().stream()
+//                    .collect(Collectors.toMap(r -> r.getShop_name().trim().toLowerCase(), Function.identity()));
+//
+//            Map<String, AppliedCard> appliedCardMap = appliedCardRepository.findAll().stream()
+//                    .collect(Collectors.toMap(c -> c.getCard_name().trim().toLowerCase(), Function.identity()));
+//
+//            for (int i = 2; i <= sheet.getLastRowNum(); i++) {
+//                Row row = sheet.getRow(i);
+//                if (row == null || isRowEmpty(row)) {
+//                    log.info("Stopped at row {} (blank)", i);
+//                    break;
+//                }
+//
+//                try {
+//                    String dateStr = getString(row.getCell(3));
+//                    LocalDateTime bookingDate = LocalDateTime.parse(dateStr, DateTimeFormatter.ofPattern("HH:mm dd/MM/yyyy"));
+//
+//                    String key = getString(row.getCell(4)).trim().toLowerCase();
+//                    Region facility = regionMap.get(key);
+//
+//                    ServiceType serviceType = null;
+//                    String allComboString = getString(row.getCell(7)).trim().replaceAll("\\s+", " ");
+//                    String originalString;
+//                    int semicolonIndex = allComboString.indexOf(";");
+//                    if (semicolonIndex != -1) {
+//                        originalString = allComboString.substring(0, semicolonIndex);
+//                    } else {
+//                        originalString = allComboString;  // fallback nếu không có dấu ;
 //                        log.warn("Row {}: Semicolon not found in '{}'", i, allComboString);
-                    }
-                    String perfectString = cleanTailNumber(originalString);
-
-                    if (perfectString.endsWith("))")) {
-                        perfectString = perfectString.substring(0, perfectString.length() - 1);
-                    } else if (perfectString.endsWith(" )")) {
-                        int open = perfectString.lastIndexOf("(");
-                        int close = perfectString.lastIndexOf(")");
-                        if (open != -1 && close != -1 && close > open) {
-                            String tag = perfectString.substring(open + 1, close).trim();  // Cắt rồi trim
-                            System.out.println(tag);  // "buổi lẻ"
-                        }
-                    }
-
-                    serviceType = getServiceType(perfectString);
-
-                    String key3 = getString(row.getCell(8)).trim().toLowerCase();
-                    AppliedCard appliedCard = appliedCardMap.get(key3);
-
-                    ServiceRecord record = ServiceRecord.builder()
-                            .recordId(Integer.parseInt(getString(row.getCell(1)).substring(1)))
-                            .orderId(Integer.parseInt(getString(row.getCell(2)).substring(1)))
-                            .bookingDate(bookingDate)
-                            .facility(facility)
-                            .customerName(getString(row.getCell(5)))
-                            .phoneNumber(getString(row.getCell(6)))
-                            .baseService(serviceType)
-                            .serviceName(allComboString)
-                            .appliedCard(appliedCard)
-                            .sessionPrice(toBigDecimal(row.getCell(9)))
-                            .sessionType(getString(row.getCell(10)).startsWith("Buổi thường") || getString(row.getCell(19)).isBlank() ? null : getString(row.getCell(10)))
-                            .surcharge(getString(row.getCell(11)).startsWith("Không có") || getString(row.getCell(19)).isBlank() ? null : getString(row.getCell(11)))
-                            .totalSurcharge(getString(row.getCell(12)).startsWith("0") || getString(row.getCell(19)).isBlank() ? null : toBigDecimal(row.getCell(12)))
-                            .shiftEmployee(getString(row.getCell(13)))
-                            .performingEmployee(getString(row.getCell(14)))
-                            .employeeSalary(toBigDecimal(row.getCell(15)))
-                            .status(getString(row.getCell(16)).startsWith("Hoàn thành") || getString(row.getCell(19)).isBlank() ? null : getString(row.getCell(16)))
-                            .rating(getString(row.getCell(17)).startsWith("Chưa đánh giá") || getString(row.getCell(19)).isBlank() ? null : Double.valueOf(getString(row.getCell(17))))
-                            .reviewContent(getString(row.getCell(18)).startsWith("Chưa có") || getString(row.getCell(19)).isBlank() ? null : getString(row.getCell(18)))
-                            .note(getString(row.getCell(19)).startsWith("Chưa có") || getString(row.getCell(19)).isBlank() ? null : getString(row.getCell(19)))
-                            .build();
-
-                    repository.save(record);
-                    success++;
-
-                } catch (Exception e) {
-                    failed++;
-                    log.warn("Row {} failed: {}", i, e.getMessage());
-                }
-            }
-
-            log.info("IMPORT SERVICE RECORD: Success = {}, Failed = {}", success, failed);
-
-        } catch (Exception e) {
-            throw new RuntimeException("Failed to import service record Excel", e);
-        }
-    }
+//                    }
+//                    String perfectString = cleanTailNumber(originalString);
+//
+//                    if (perfectString.endsWith("))")) {
+//                        perfectString = perfectString.substring(0, perfectString.length() - 1);
+//                    } else if (perfectString.endsWith(" )")) {
+//                        int open = perfectString.lastIndexOf("(");
+//                        int close = perfectString.lastIndexOf(")");
+//                        if (open != -1 && close != -1 && close > open) {
+//                            String tag = perfectString.substring(open + 1, close).trim();  // Cắt rồi trim
+//                            System.out.println(tag);  // "buổi lẻ"
+//                        }
+//                    }
+//
+//                    serviceType = getServiceType(perfectString);
+//
+//                    String key3 = getString(row.getCell(8)).trim().toLowerCase();
+//                    AppliedCard appliedCard = appliedCardMap.get(key3);
+//
+//                    ServiceRecord record = ServiceRecord.builder()
+//                            .recordId(Integer.parseInt(getString(row.getCell(1)).substring(1)))
+//                            .orderId(Integer.parseInt(getString(row.getCell(2)).substring(1)))
+//                            .bookingDate(bookingDate)
+//                            .facility(facility)
+//                            .customerName(getString(row.getCell(5)))
+//                            .phoneNumber(getString(row.getCell(6)))
+//                            .baseService(serviceType)
+//                            .serviceName(allComboString)
+//                            .appliedCard(appliedCard)
+//                            .sessionPrice(toBigDecimal(row.getCell(9)))
+//                            .sessionType(getString(row.getCell(10)).startsWith("Buổi thường") || getString(row.getCell(19)).isBlank() ? null : getString(row.getCell(10)))
+//                            .surcharge(getString(row.getCell(11)).startsWith("Không có") || getString(row.getCell(19)).isBlank() ? null : getString(row.getCell(11)))
+//                            .totalSurcharge(getString(row.getCell(12)).startsWith("0") || getString(row.getCell(19)).isBlank() ? null : toBigDecimal(row.getCell(12)))
+//                            .shiftEmployee(getString(row.getCell(13)))
+//                            .performingEmployee(getString(row.getCell(14)))
+//                            .employeeSalary(toBigDecimal(row.getCell(15)))
+//                            .status(getString(row.getCell(16)).startsWith("Hoàn thành") || getString(row.getCell(19)).isBlank() ? null : getString(row.getCell(16)))
+//                            .rating(getString(row.getCell(17)).startsWith("Chưa đánh giá") || getString(row.getCell(19)).isBlank() ? null : Double.valueOf(getString(row.getCell(17))))
+//                            .reviewContent(getString(row.getCell(18)).startsWith("Chưa có") || getString(row.getCell(19)).isBlank() ? null : getString(row.getCell(18)))
+//                            .note(getString(row.getCell(19)).startsWith("Chưa có") || getString(row.getCell(19)).isBlank() ? null : getString(row.getCell(19)))
+//                            .build();
+//
+//                    repository.save(record);
+//                    success++;
+//
+//                } catch (Exception e) {
+//                    failed++;
+//                    log.warn("Row {} failed: {}", i, e.getMessage());
+//                }
+//            }
+//
+//            log.info("IMPORT SERVICE RECORD: Success = {}, Failed = {}", success, failed);
+//
+//        } catch (Exception e) {
+//            throw new RuntimeException("Failed to import service record Excel", e);
+//        }
+//    }
 
     private ServiceType getServiceType(String perfectString) {
         int cutString = Math.round((float) perfectString.length() / 3);
@@ -226,7 +227,7 @@ public class ServiceRecordService {
             Map<String, Region> regionMap = regionRepository.findAll().stream()
                     .collect(Collectors.toMap(r -> r.getShop_name().trim().toLowerCase(), Function.identity()));
 
-            Map<String, ServiceType> serviceTypeMap = serviceTypeRepository.findAll().stream()
+            Map<String, ServiceTypeTemp> serviceTypeMap = serviceTypeTempRepository.findAll().stream()
                     .collect(Collectors.toMap(s -> s.getService_name().trim().toLowerCase(), Function.identity()));
 
             Map<String, AppliedCard> appliedCardMap = appliedCardRepository.findAll().stream()
@@ -247,7 +248,7 @@ public class ServiceRecordService {
                     Region facility = regionMap.get(key);
 
                     String key2 = getString(row.getCell(7)).trim().toLowerCase();
-                    ServiceType serviceType = serviceTypeMap.get(key2);
+                    ServiceTypeTemp serviceType = serviceTypeMap.get(key2);
 
                     String key3 = getString(row.getCell(8)).trim().toLowerCase();
                     AppliedCard appliedCard = appliedCardMap.get(key3);

@@ -34,7 +34,7 @@ public class ServiceRecord {
 
     @ManyToOne
     @JoinColumn(name = "base_service_id")
-    private ServiceType baseService;
+    private ServiceTypeTemp baseService;
 
     private String serviceName;
 
